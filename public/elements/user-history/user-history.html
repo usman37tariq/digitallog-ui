@@ -1,0 +1,264 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="user-history">
+
+    <template>
+
+        <style>
+            ::content div.dataTables_wrapper div.dataTables_info {
+                padding-top: 0.5em !important;
+            }
+
+            ::content table.dataTable {
+                margin-bottom: 0 !important;
+            }
+        </style>
+
+        <global-loader>
+            <iron-ajax id="_userHistory" url="/userHistory" method="POST" content-type="application/json"
+                last-response="{{_response_userHistory}}" loading="{{_loading_userHistory}}"
+                on-response="_onResponse_userHistory">
+            </iron-ajax>
+        </global-loader>
+
+        <main class="d-flex h-100 ml-lg-3 p-0 pl-lg-5">
+            <div class="detail d-flex flex-grow-1 flex-column h-100">
+
+                <div class="flex-grow-0">
+                    <div class="p-3 bg-light text-dark border-bottom pb-4">
+                        <div class="d-flex">
+                            <div class="col-12 p-0">
+                                <div class="d-flex flex-wrap">
+
+                                    <div class="col-4 col-md-2 p-0">
+                                        <div class="h5 m-0">
+                                            User History
+                                        </div>
+                                    </div>
+                                    <div class="col-8 col-md-10 p-0 text-right">
+                                        <button class="btn btn-outline-dark mt-n1" on-click="_reloadUserHistory"
+                                            title="Last 7 days Data"><i class="fas fa-sm fa-undo mr-1"></i></button>
+                                        <button class="btn btn-dark mt-n1" on-click="_getUserHistory"><i
+                                                class="fas fa-sm fa-search mr-1"></i>
+                                            Search</button>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex flex-wrap pt-3 mx-n3 my-n2">
+                                    <div class="col-sm-6 my-2">
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <label class="input-group-text">Start Date</label>
+                                            </div>
+                                            <input type="text" class="form-control form-control-picker"
+                                                value$="{{_startDate}}" data-value$="{{_startDate}}"
+                                                id="_startDate_userHistory">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-sm-6 my-2">
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <label class="input-group-text">End Date</label>
+                                            </div>
+                                            <input type="text" class="form-control form-control-picker"
+                                                value$="{{_endDate}}" data-value$="{{_endDate}}"
+                                                id="_endDate_userHistory">
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="flex-grow-1 overflow-auto pt-3">
+                    <table id="loginHistoryTable" class="table table-striped table-hover m-0" cellpadding="0"
+                        cellspacing="0"></table>
+                </div>
+            </div>
+        </main>
+    </template>
+
+
+    <script>
+        Polymer({
+            is: "user-history",
+
+            properties: {
+                _startDate: {
+                    value: function () {
+                        return moment().subtract('7', 'days').format('DD-MM-YYYY hh:mm A')
+                    }
+                },
+                _endDate: {
+                    value: function () {
+                        return moment().format('DD-MM-YYYY hh:mm A')
+                    }
+                },
+            },
+
+            observers: [],
+
+            listeners: {},
+
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            attached: function () { },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+
+            ready: function () {
+                var _root = this;
+                _root._enableDateRangePicker();
+                _root._getUserHistory()
+            },
+
+            _reloadUserHistory: function (e) {
+                var _root = this;
+
+                _root.querySelector('#_startDate_userHistory').value = moment().subtract('7', 'days').format('DD-MM-YYYY hh:mm A');
+                _root.querySelector('#_endDate_userHistory').value = moment().format('DD-MM-YYYY hh:mm A');
+
+                _root._getUserHistory();
+            },
+
+            _getUserHistory: function (e) {
+                var _root = this;
+
+                var _userHistory = _root.querySelector('#_userHistory');
+                var _startDate_userHistory = moment(moment(_root.querySelector('#_startDate_userHistory').value, 'DD-MM-YYYY hh:mm A')).format('x');
+                var _endDate_userHistory = moment(moment(_root.querySelector('#_endDate_userHistory').value, 'DD-MM-YYYY hh:mm A')).format('x');
+
+                var userHistoryData = new FormData();
+                userHistoryData = {
+                    "startDate": _startDate_userHistory,
+                    "endDate": _endDate_userHistory
+                }
+                // console.log('userHistoryData', userHistoryData);
+                _userHistory.body = userHistoryData;
+                _userHistory.generateRequest();
+            },
+
+            _enableDateRangePicker: function () {
+                var _root = this;
+
+                var _startDate_userHistory = $(_root.querySelector('#_startDate_userHistory'));
+                var _endDate_userHistory = $(_root.querySelector('#_endDate_userHistory'));
+
+                var picker_format = 'DD-MM-YYYY hh:mm A';
+
+                var picker_options = {
+                    singleDatePicker: true,
+                    timePicker: true,
+                    /* minDate: moment(moment(), picker_format), */
+                    maxDate: moment(moment(), picker_format),
+                    showDropdowns: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: picker_format
+                    },
+                    cancelButtonClasses: "btn-light",
+                    applyButtonClasses: "btn-secondary"
+                };
+
+                _startDate_userHistory.daterangepicker(picker_options).on('apply.daterangepicker', function (ev, picker) {
+                    var pickerStartDate = picker.startDate.format(picker_format);
+
+                    ev.target.value = pickerStartDate;
+                    _endDate_userHistory.data('daterangepicker').minDate = moment(picker.startDate, picker_format);
+                    _endDate_userHistory.attr('data-value', pickerStartDate);
+
+                    if (moment(picker.startDate, picker_format).isAfter(moment(_endDate_userHistory.val(), picker_format))) {
+                        _endDate_userHistory.val(pickerStartDate);
+                        _endDate_userHistory.data('daterangepicker').setStartDate(pickerStartDate);
+                        _endDate_userHistory.data('daterangepicker').setEndDate(pickerStartDate);
+                    }
+                });
+
+                _endDate_userHistory.daterangepicker(picker_options).on('apply.daterangepicker', function (ev, picker) {
+                    var pickerEndDate = picker.startDate.format(picker_format);
+
+                    ev.target.value = pickerEndDate;
+                    if (moment(_startDate_userHistory.val(), picker_format).isAfter(moment(picker.startDate, picker_format))) {
+                        _startDate_userHistory.val(pickerEndDate);
+                        _startDate_userHistory.data('daterangepicker').setStartDate(pickerEndDate);
+                        _startDate_userHistory.data('daterangepicker').setEndDate(pickerEndDate);
+                    }
+                });
+            },
+
+            _onResponse_userHistory: function (e) {
+                var _root = this;
+                var _loginHistoryTable = _root.querySelector('#loginHistoryTable');
+
+                $.extend(true, $.fn.DataTable.defaults, {
+                    dom:
+                        "<'row'<'col-12 col-md-6'i><'col-12 col-md-6'f>>" +
+                        "<'row'<'col-12 p-0'tr>>" +
+                        "<'d-none bg-light border-top justify-content-between p-3 row'<l><p>>",
+                    classes: {
+                        sWrapper: "dataTables_wrapper container-fluid dt-bootstrap4",
+                        sFilterInput: "form-control input-sm",
+                        sLengthSelect: "form-control input-sm",
+                        sProcessing: "dataTables_processing panel panel-default",
+                        sPageButton: "paginate_button page-item"
+                    }
+                });
+
+                //custom sorting
+                Object.assign($.fn.DataTable.ext.oSort, {
+                    'momentDate-asc': (a, b) => moment(a, 'DD-MM-YYYY hh:mm A').format('x') - moment(b, 'DD-MM-YYYY hh:mm A').format('x'),
+                    'momentDate-desc': (a, b) => moment(b, 'DD-MM-YYYY hh:mm A').format('x') - moment(a, 'DD-MM-YYYY hh:mm A').format('x')
+                });
+
+                var _dataTable = $(_loginHistoryTable).DataTable({
+                    data: e.detail.response,
+                    columns: [
+                        { title: "Login Time", data: "loginDatim" },
+                        { title: "Duration", data: "loginDuration" },
+                        { title: "User Id", data: "userId" },
+                        { title: "IP Address", data: "ip" },
+                        { title: "OS", data: "os" },
+                        { title: "User Agent", data: "application" }
+                    ],
+                    columnDefs: [
+                        {
+                            targets: 0,
+                            responsivePriority: 1,
+                            className: "text-nowrap",
+                            type: "momentDate",
+                            render: function (data, type, row) {
+                                return data ? moment(data).format('DD-MM-YYYY hh:mm A') : '';
+                            }
+                        },
+                    ],
+                    order: [
+                        [0, "desc"]
+                    ],
+                    oLanguage: {
+                        sInfo: "Showing _TOTAL_ entries",// text you want show for info section
+                    },
+                    autoWidth: false,
+                    destroy: true,
+                    responsive: true,
+                    deferRender: true,
+                    paging: false,
+                    /* pagingType: "full_numbers",
+                    lengthChange: true,
+                    pageLength: 25,
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]] */
+                });
+            }
+        });
+    </script>
+
+</dom-module>

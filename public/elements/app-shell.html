@@ -1,0 +1,896 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/app-router/app-router.html">
+<link rel="import" href="global-loader/global-loader.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+<style>
+    @media (max-width: 1200px) {
+        .tooltip {
+            display: none !important;
+        }
+    }
+</style>
+<dom-module id="app-shell">
+
+
+    <template>
+        <iron-ajax auto url="/statusCheck" on-response="_onResponse_checkStatus" on-error="_onError_checkStatus">
+        </iron-ajax>
+
+
+        <template is="dom-if" if="{{userData.dataCollector.read}}">
+            <iron-ajax id="checklistCount" url$="/checklist/notification/count/{{userId}}" method="GET"
+                last-response="{{_response_checklistCount}}" on-response="_onResponse_checklistCount"
+                on-error="_onError_checklistCount">
+            </iron-ajax>
+        </template>
+
+
+
+        <!-- scoped CSS for this element -->
+        <style>
+            :host {
+                display: block;
+                height: 100%;
+                padding-top: 56px;
+                /*height on nav*/
+            }
+
+            @media (max-width: 1200px) {
+                .app-nav {
+                    overflow: auto !important;
+                }
+            }
+
+            .navbar-expand-lg .nav-link:not(.active) {
+                box-shadow: inset -1px 0 0 rgba(255, 255, 255, .05);
+            }
+
+            @media (min-width: 992px) {
+                .navbar-expand-lg .navbar-brand {
+                    box-shadow: inset -1px 0 0 rgba(255, 255, 255, .05);
+                }
+            }
+
+            .navbar-brand {
+                width: 64px;
+                height: 56px;
+            }
+
+            .navbar-collapse:not(.show) {
+                height: 56px;
+            }
+
+            .navbar-expand-lg .nav-link.active {
+                background-color: rgba(0, 0, 0, .25);
+                box-shadow: inset 0 2px 0 0 #6fb444;
+            }
+
+            .container-with-sidebar {
+                padding-left: 64px;
+                padding-right: 0;
+            }
+
+            @media (min-width: 992px) {
+                .sidebar {
+                    width: 64px;
+                    height: 100%;
+                    position: fixed;
+                    left: 0;
+                    text-align: center;
+                }
+            }
+
+            .navbar {
+                z-index: 1041;
+                top: 0;
+                left: 0;
+                right: 0;
+            }
+
+            #userId {
+                background-color: #3e444a;
+            }
+
+            .nav-item .sidebar {
+                display: none;
+            }
+
+            .nav-item .nav-link.active+.sidebar {
+                display: flex !important;
+            }
+
+            .nav-item .sidebar .nav-link.active {
+                box-shadow: unset !important;
+            }
+
+            .nav-item .sidebar .nav-link {
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05) !important;
+            }
+
+            .nav-item .nav-link.active .badge {
+                opacity: 0;
+            }
+
+            .nav-item .nav-link.active+.sidebar .nav-link .badge {
+                opacity: 1 !important;
+            }
+        </style>
+
+        <nav class="navbar navbar-dark bg-dark position-fixed w-100 navbar-expand-lg p-0">
+
+            <div class="d-flex navbar-brand p-3 m-0">
+                <svg viewBox="0 0 67.70370297485212 48.83597867579158" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="35" height="100%">
+                    <g>
+                        <path fill="#B2D78C"
+                            d="M36.938,0.101c0.269-0.039,0.559-0.167,0.826-0.058C45.653,5.3,53.443,10.711,61.073,16.332   c1.843,1.354,3.687,2.706,5.529,4.062c0.272,0.194,0.514,0.427,0.785,0.626c-0.802-0.121-1.625-0.052-2.435-0.088   c-1.747-0.138-3.502-0.056-5.253-0.064c-0.4,0.084-0.871-0.029-1.229,0.167c-0.087-0.057-0.175-0.116-0.258-0.177   c-1.723-1.299-3.506-2.515-5.262-3.77c-5.52-3.854-11.063-7.67-16.658-11.416c-0.291-0.227-0.674-0.149-1.011-0.105   c-7.939,1.362-15.641,3.938-22.913,7.363c-1.818,0.888-3.64,1.781-5.391,2.795c-0.031,0.016-0.09,0.048-0.12,0.065   c-1.093-0.83-2.297-1.503-3.478-2.2c0.006-0.036,0.018-0.107,0.025-0.144c2.025-1.433,4.187-2.666,6.369-3.847   C18.276,5.089,27.486,1.941,36.938,0.101z" />
+                        <path fill="#7BC143"
+                            d="M12.369,12.928c7.272-3.425,14.974-6.001,22.913-7.363c0.336-0.044,0.72-0.121,1.011,0.105   c5.595,3.746,11.138,7.562,16.658,11.416c1.755,1.255,3.539,2.471,5.262,3.77c-0.682,0.158-1.389,0.048-2.076,0.174   c-1.193,0.04-2.385,0.122-3.572,0.241c-0.997-0.016-1.979,0.18-2.97,0.25c-0.443-0.299-0.848-0.649-1.295-0.941   c-1.83-1.151-3.532-2.486-5.332-3.679c-0.472-0.304-0.943-0.612-1.384-0.958c-1.123-0.861-2.349-1.574-3.508-2.387   c-1.05-0.771-2.123-1.515-3.198-2.25c-0.285-0.185-0.59-0.429-0.951-0.369c-2.759,0.369-5.465,1.035-8.155,1.736   c-3.346,1.003-6.65,2.154-9.868,3.51c-0.662,0.323-1.366,0.553-2.033,0.866c-1,0.539-2.091,0.882-3.089,1.431   c-1.076-0.734-2.09-1.557-3.191-2.258c-0.225-0.138-0.425-0.313-0.611-0.5C8.729,14.709,10.551,13.815,12.369,12.928z" />
+                        <path fill="#6FB444"
+                            d="M25.771,12.673c2.69-0.701,5.396-1.367,8.155-1.736c0.361-0.06,0.666,0.185,0.951,0.369   c1.076,0.736,2.148,1.479,3.198,2.25c1.159,0.813,2.385,1.526,3.508,2.387c0.441,0.345,0.912,0.654,1.384,0.958   c1.8,1.192,3.502,2.527,5.332,3.679c0.447,0.292,0.853,0.643,1.295,0.941c-3.541,0.401-7.076,0.938-10.543,1.778   c-3.857,0.935-7.654,2.186-11.196,3.985c-1.944,1.031-3.838,2.185-5.505,3.626c-0.112,0.094-0.265,0.119-0.402,0.165   c-0.413-0.999-1.007-1.906-1.598-2.807c-0.672-1.079-1.521-2.029-2.31-3.022c-0.64-0.696-1.232-1.436-1.926-2.079   c-1.338-1.395-2.841-2.615-4.29-3.89c-0.348-0.282-0.722-0.53-1.101-0.768l0.058-0.03c0.998-0.548,2.089-0.892,3.089-1.431   c0.667-0.313,1.371-0.543,2.033-0.866C19.12,14.827,22.425,13.677,25.771,12.673z" />
+                        <path fill="#68C296"
+                            d="M6.858,15.789c0.03-0.018,0.089-0.049,0.12-0.065c0.186,0.187,0.387,0.362,0.611,0.5   c1.102,0.701,2.115,1.524,3.191,2.258l-0.058,0.03c-1.365,0.689-2.746,1.346-4.087,2.083c-0.556,0.311-1.149,0.567-1.658,0.957   c-0.301,0.2-0.625,0.364-0.962,0.496c0.183-0.265,0.517-0.343,0.783-0.498c-0.058-0.276-0.326-0.41-0.53-0.57   c-0.765-0.58-1.535-1.157-2.314-1.718c-0.122-0.081-0.222-0.188-0.293-0.315C3.349,17.824,5.067,16.739,6.858,15.789z" />
+                        <path fill="#1CB474"
+                            d="M6.636,20.593c1.341-0.737,2.722-1.394,4.087-2.083c0.378,0.238,0.753,0.485,1.101,0.768   c1.448,1.275,2.951,2.496,4.29,3.89c0.694,0.643,1.287,1.383,1.926,2.079c0.789,0.993,1.638,1.943,2.31,3.022   c0.591,0.901,1.186,1.808,1.598,2.807c0.137-0.045,0.29-0.071,0.402-0.165c1.667-1.441,3.562-2.595,5.505-3.626   c3.542-1.8,7.338-3.051,11.196-3.985c3.467-0.84,7.003-1.377,10.543-1.778c1.696,1.233,3.442,2.404,5.141,3.639   c0.583,0.438,1.227,0.796,1.759,1.299c-4.46,0.144-8.911,0.624-13.302,1.417c-2.979,0.55-5.938,1.242-8.805,2.219   c-3.674,1.21-7.238,2.845-10.373,5.118c-1.703,1.227-3.227,2.684-4.56,4.298c-0.247-2.011-1.218-3.839-2.267-5.543   c-1.377-2.125-3.005-4.085-4.793-5.881c-0.39-0.429-0.79-0.852-1.229-1.232c-1.955-1.887-4.017-3.669-6.188-5.304   C5.487,21.161,6.08,20.904,6.636,20.593z"
+                            id="svg_6" />
+                        <path fill="#68C296"
+                            d="M58.212,20.856c0.083,0.062,0.171,0.12,0.258,0.177c2.014,1.424,3.995,2.896,5.945,4.406   c0.407,0.344,0.878,0.618,1.224,1.028c-0.496,0.041-0.985-0.036-1.477-0.07c-1.741-0.033-3.481-0.031-5.223-0.017   c-0.708,0.027-1.423-0.034-2.126,0.085c0.007,0.058,0.022,0.173,0.031,0.233c-0.122-0.076-0.239-0.153-0.351-0.239   c-0.533-0.503-1.176-0.861-1.759-1.299c-1.698-1.234-3.444-2.405-5.141-3.639c0.992-0.07,1.973-0.265,2.97-0.25   c1.187-0.119,2.378-0.201,3.572-0.241C56.824,20.904,57.53,21.014,58.212,20.856z" />
+                        <path fill="#08723D"
+                            d="M4.016,22.045c0.337-0.131,0.662-0.296,0.962-0.496c2.17,1.635,4.233,3.417,6.188,5.304   c0.439,0.38,0.839,0.803,1.229,1.232c1.788,1.795,3.416,3.756,4.793,5.881c1.049,1.705,2.02,3.533,2.267,5.543   c1.333-1.614,2.857-3.071,4.56-4.298c3.134-2.273,6.698-3.908,10.373-5.118c2.867-0.977,5.825-1.669,8.805-2.219   c4.391-0.793,8.842-1.273,13.302-1.417c0.112,0.086,0.229,0.163,0.351,0.239c2.439,1.678,4.805,3.469,7.186,5.23   c-3.201,0.048-6.4,0.203-9.587,0.471c-0.427,0.135-0.89,0.008-1.315,0.152c-0.329,0.059-0.687-0.025-1.001,0.112   c-0.335,0.041-0.686-0.011-1.01,0.11c-0.296,0.038-0.605-0.006-0.888,0.107c-0.297,0.034-0.605,0.007-0.893,0.108   c-0.526,0.043-1.05,0.115-1.566,0.213c-2.407,0.331-4.799,0.775-7.168,1.308c-0.359,0.093-0.726,0.159-1.083,0.263   c-0.154,0.028-0.305,0.061-0.455,0.098c-0.149,0.034-0.296,0.07-0.442,0.112c-0.266,0.061-0.528,0.131-0.789,0.215   c-0.146,0.034-0.293,0.067-0.441,0.106c-0.408,0.112-0.818,0.221-1.221,0.35c-0.35,0.091-0.689,0.206-1.041,0.292l-0.072,0.043   c-0.539,0.147-1.072,0.326-1.6,0.506c-0.359,0.132-0.727,0.248-1.085,0.383c-0.301,0.104-0.598,0.214-0.893,0.33   c-0.19,0.063-0.375,0.139-0.56,0.219c-3.938,1.555-7.766,3.581-10.859,6.5c-1.148,1.061-2.142,2.273-3.038,3.547   c-0.021,0.057-0.061,0.165-0.081,0.222c-0.023-0.286-0.042-0.575-0.114-0.854c-0.249-1.354-0.758-2.646-1.303-3.905   c-0.075-0.147-0.145-0.297-0.21-0.447c-1.417-3.014-3.356-5.756-5.477-8.316C6.901,30.644,3.544,27.477,0,24.554   c0.018-0.056,0.054-0.166,0.072-0.221C1.403,23.603,2.664,22.739,4.016,22.045z" />
+                    </g>
+                </svg>
+            </div>
+
+
+
+
+
+
+
+
+
+
+            <button id="navbarToggler" class="navbar-toggler m-2 border-0" type="button" on-click="_toggleNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- <button id="navbarToggler" class="navbar-toggler m-2" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button> -->
+
+
+
+
+
+
+
+
+
+
+            <div class="collapse navbar-collapse align-items-start" id="navbarNav">
+
+                <ul class="app-nav navbar-nav mr-auto">
+
+
+
+
+
+
+
+
+
+
+                    <!-- <li class="nav-item flex-shrink-0">
+                        <a class="nav-link p-3 px-4" href="#/dashboard">Dashboard</a>
+                    </li> -->
+
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.hierachyBuilder.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4" href="#/hierarchy-builder">Hierarchy
+                                Builder</a>
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/hierarchy-builder"
+                                        data-toggle="tooltip" data-placement="right" title="Hierarchy Builder">
+                                        <i class="fas fa-sitemap"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Hierarchy
+                                            Builder</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.assetBuilder.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4" href="#/asset-builder">Asset Builder</a>
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/asset-builder/parameter-builder"
+                                        data-toggle="tooltip" data-placement="right" title="Parameter Builder">
+                                        <i class="fas fa-list"></i><span class="d-inline-block d-lg-none mx-1">Parameter
+                                            Builder</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/asset-builder/template-builder"
+                                        data-toggle="tooltip" data-placement="right" title="Template Builder">
+                                        <i class="fas fa-file-alt"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Template
+                                            Builder</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.checklistBuilder.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4" href="#/checklist-builder">Checklist
+                                Builder</a>
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/checklist-builder"
+                                        data-toggle="tooltip" data-placement="right" title="Checklist Builder">
+                                        <i class="fas fa-list-ul"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Checklist
+                                            Builder</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.dataCollector.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4 position-relative" href="#/data-collector">Data
+                                Collector
+                                <template is="dom-if" if="{{!_isEqual(_response_checklistCount.unClaimedCount, 0)}}">
+                                    <span class="badge badge-pill badge-warning p-1 position-absolute" style="top: 1rem; right: 1rem;"> </span>
+                                </template>
+                            </a>
+
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/data-collector/inbox"
+                                        data-toggle="tooltip" data-placement="right" title="Inbox">
+                                        <i class="fas fa-envelope"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Inbox</span>
+                                        <template is="dom-if"
+                                            if="{{!_isEqual(_response_checklistCount.unClaimedCount, '')}}">
+                                            <span
+                                                class="badge badge-warning border border-dark ml-n2 mt-n2 position-absolute shadow-sm text-body">
+                                                {{_response_checklistCount.unClaimedCount}}</span>
+                                        </template>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/data-collector/claimed-checklist"
+                                        data-toggle="tooltip" data-placement="right" title="My Checklist(s)">
+                                        <i class="fas fa-file-signature"></i><span
+                                            class="d-inline-block d-lg-none mx-1">My Checklist(s)</span>
+                                        <template is="dom-if"
+                                            if="{{!_isEqual(_response_checklistCount.claimedCount, '')}}">
+                                            <span
+                                                class="badge badge-warning border border-dark ml-n2 mt-n2 position-absolute shadow-sm text-body">
+                                                {{_response_checklistCount.claimedCount}}</span>
+                                        </template>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/data-collector/review-checklist"
+                                        data-toggle="tooltip" data-placement="right" title="Review Checklist">
+                                        <i class="fas fa-tasks"></i><span class="d-inline-block d-lg-none mx-1">Review
+                                            Checklist</span>
+                                        <template is="dom-if"
+                                            if="{{!_isEqual(_response_checklistCount.approveCount, '')}}">
+                                            <span
+                                                class="badge badge-warning border border-dark ml-n2 mt-n2 position-absolute shadow-sm text-body">
+                                                {{_response_checklistCount.approveCount}}</span>
+                                        </template>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.dataVisualization.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4" href="#/data-visualization">Data
+                                Visualization</a>
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/data-visualization"
+                                        data-toggle="tooltip" data-placement="right" title="Data Visualization">
+                                        <i class="fas fa-sitemap"></i><span class="d-inline-block d-lg-none mx-1">Data
+                                            Visualization</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/data-visualization/checklist-search"
+                                        data-toggle="tooltip" data-placement="right" title="Checklist Search">
+                                        <i class="fas fa-th-list"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Checklist
+                                            Search</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.userManagement.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4" href="#/user-management">User
+                                Management</a>
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/user-management/users"
+                                        data-toggle="tooltip" data-placement="right" title="Users">
+                                        <i class="fas fa-user"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Users</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/user-management/groups"
+                                        data-toggle="tooltip" data-placement="right" title="Groups">
+                                        <i class="fas fa-users"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Groups</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/user-management/departments"
+                                        data-toggle="tooltip" data-placement="right" title="Departments">
+                                        <i class="fas fa-layer-group"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Departments</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/user-management/sections"
+                                        data-toggle="tooltip" data-placement="right" title="Sections">
+                                        <i class="fas fa-th"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Sections</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/user-management/roles"
+                                        data-toggle="tooltip" data-placement="right" title="Roles">
+                                        <i class="fas fa-tasks"></i><span
+                                            class="d-inline-block d-lg-none mx-1">Roles</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+
+
+
+
+
+
+
+
+
+                    <template is="dom-if" if="{{userData.loginHistory.read}}">
+                        <li class="nav-item flex-shrink-0">
+                            <a class="nav-link py-3 px-4" href="#/user-history">User History</a>
+                            <ul class="nav flex-column bg-dark sidebar">
+                                <li class="nav-item">
+                                    <a class="nav-link px-lg-0 px-4 py-3" href="#/user-history" data-toggle="tooltip"
+                                        data-placement="right" title="User History">
+                                        <i class="fas fa-list-ul"></i><span class="d-inline-block d-lg-none mx-1">User
+                                            History</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </template>
+
+                </ul>
+
+                <ul class="navbar-nav">
+                    <li class="nav-item text-nowrap dropdown">
+                        <a id="userId" class="nav-link dropdown-toggle py-3 px-4 border-0" href="#"
+                            data-toggle="dropdown"><i class="fas fa-user mr-2" on-click="_test"></i>{{userName}}</a>
+                        <div class="dropdown-menu dropdown-menu-right mt-n1">
+                            <a on-click="_endSession" class="dropdown-item" href="/logout">Logout</a>
+                        </div>
+                    </li>
+                </ul>
+
+            </div>
+
+        </nav>
+
+
+        <app-router mode="hash" scroll-to-hash="disabled" on-state-change="_routerStateChanged" init="auto"
+            trailingSlash="ignore">
+
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.dataVisualization.read}}">
+                <app-route path="/data-visualization" import="../public/elements/view-data-visulization.html">
+                </app-route>
+                <app-route path="/data-visualization/checklist-search"
+                    import="../public/elements/view-checklist-search.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.hierachyBuilder.read}}">
+                <app-route path="/hierarchy-builder" import="../public/elements/view-hierarchy-builder.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.assetBuilder.read}}">
+                <app-route path="/asset-builder" redirect="/asset-builder/parameter-builder"></app-route>
+
+                <app-route path="/asset-builder/parameter-builder"
+                    import="../public/elements/view-asset-parameters-builder.html">
+                </app-route>
+                <app-route path="/asset-builder/template-builder"
+                    import="../public/elements/view-template-builder.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.checklistBuilder.read}}">
+                <app-route path="/checklist-builder" import="../public/elements/view-checklist-builder.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.userManagement.read}}">
+                <app-route path="/user-management" redirect="/user-management/users"></app-route>
+
+                <app-route path="/user-management/users" import="../public/elements/user-management/view-users.html">
+                </app-route>
+                <app-route path="/user-management/groups" import="../public/elements/user-management/view-groups.html">
+                </app-route>
+                <app-route path="/user-management/departments"
+                    import="../public/elements/user-management/view-departments.html">
+                </app-route>
+                <app-route path="/user-management/sections"
+                    import="../public/elements/user-management/view-sections.html">
+                </app-route>
+                <app-route path="/user-management/roles" import="../public/elements/user-management/view-roles.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.dataCollector.read}}">
+                <app-route path="/data-collector" redirect="/data-collector/inbox"></app-route>
+
+                <app-route path="/data-collector/inbox" import="../public/elements/data-collector/view-inbox.html">
+                </app-route>
+                <app-route path="/data-collector/claimed-checklist"
+                    import="../public/elements/data-collector/view-claimed-checklist.html">
+                </app-route>
+                <app-route path="/data-collector/review-checklist"
+                    import="../public/elements/data-collector/view-review-checklist.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+            <template is="dom-if" if="{{userData.loginHistory.read}}">
+                <app-route path="/user-history" import="../public/elements/user-history/user-history.html">
+                </app-route>
+            </template>
+
+
+
+
+
+
+
+
+
+            <!-- 404 route -->
+            <app-route path="*" import="../public/elements/view-not-found.html"></app-route>
+
+            <app-route path="/password" import="../public/elements/view-reset-password.html"></app-route>
+
+
+
+
+
+
+
+
+
+
+        </app-router>
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "app-shell",
+
+            properties: {
+                userId: {
+                    value: function () {
+                        return window.user_id;
+                    }
+                },
+                userName: {
+                    value: function () {
+                        return window.user_data.user.userName;
+                    }
+                },
+                userData: {
+                    value: function () {
+                        return window.user_data;
+                    }
+                }
+            },
+
+            listeners: {
+                "refresh-checklist": "_refreshChecklist"
+            },
+
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            ready: function () {
+
+            },
+
+            attached: function () {
+                var _root = this;
+
+                _root.async(function () {
+                    $('[data-toggle="tooltip"]').tooltip();
+                    $('[data-toggle="popover"]').popover();
+                    $('[data-toggle="dropdown"]').dropdown()
+                    _root.userId = window.user_id;
+
+
+                    var activeLink = _root.querySelector('.sidebar a.nav-link');
+
+                    if (typeof (Storage) !== "undefined") {
+                        // Code for localStorage/sessionStorage.
+                        var _redirect = sessionStorage.getItem("redirect")
+                    }
+
+                    if (_redirect) {
+                        _root.querySelector('app-router').go(_redirect.replace('#', ''));
+                    } else if (activeLink && activeLink.getAttribute('href')) {
+                        _root.querySelector('app-router').go(activeLink.getAttribute('href').replace('#', ''));
+                    }
+
+
+
+                    if (_root.userData.dataCollector.read) {
+                        _root.querySelector('#checklistCount').generateRequest();
+                    }
+
+
+                });
+
+
+
+                Highcharts.setOptions({
+                    boost: {
+                        useGPUTranslations: true,
+                        usePreallocated: true,
+                        allowForce: true,
+                    },
+                    lang: {
+                        decimalPoint: '.',
+                        thousandsSep: ','
+                    },
+                    chart: {
+                        animation: false,
+                        zoomType: 'x'
+                    },
+                    rangeSelector: {
+                        // enabled: false,
+                        selected: 8,
+                        inputEnabled: true,
+                        buttons: [{
+                            type: 'hour',
+                            count: 0,
+                            text: '1h'
+                        }, {
+                            type: 'day',
+                            count: 0,
+                            text: '1d'
+                        }, {
+                            type: 'week',
+                            count: 0,
+                            text: '1w'
+                        }, {
+                            type: 'month',
+                            count: 1,
+                            text: '1m'
+                        }, {
+                            type: 'month',
+                            count: 3,
+                            text: '3m'
+                        }, {
+                            type: 'month',
+                            count: 6,
+                            text: '6m'
+                        }, {
+                            type: 'ytd',
+                            text: 'YTD'
+                        }, {
+                            type: 'year',
+                            count: 1,
+                            text: '1y'
+                        }, {
+                            type: 'all',
+                            text: 'All'
+                        }]
+                    },
+                    navigator: {
+                        buttonOptions: {
+                            enabled: true
+                        },
+                        enabled: true,
+                        height: 60
+                    },
+                    exporting: {
+                        allowHTML: true,
+                        sourceWidth: 1280,
+                        sourceHeight: 768,
+                        scale: 1,
+                        filename: Math.round(new Date().getTime() / 1000),
+                        buttons: {
+                            contextButton: {
+                                menuItems: [
+                                    'downloadJPEG',
+                                    'downloadPDF',
+                                    'downloadPNG',
+                                    'downloadCSV',
+                                    'downloadXLS'
+                                ]
+                            }
+                        }
+
+                    },
+                    credits: {
+                        enabled: false
+                    }
+                });
+            },
+
+            detached: function () { },
+            // _test: function () {  console.log(userId);},
+            attributeChanged: function (name, type) { },
+
+            _isEqual: function (first, second) {
+                return first === second
+            },
+
+            _routerStateChanged: function (e) {
+                // window.stop();
+                $('html').addClass('in-progress');
+
+                this.async(function () {
+                    if (e.detail.path.match(/[^\/]+/g)) {
+
+                        var baseRoute = e.detail.path.match(/[^\/]+/g).reverse().pop();
+                        var activeRoute = $('ul.app-nav > li.nav-item > a.nav-link').removeClass('active').filter('[href="#/' + baseRoute + '"]')
+                            .addClass(
+                                'active');
+
+                        $('ul.app-nav > li.nav-item .sidebar a.nav-link').removeClass('active').filter('[href="#' + e.detail.path + '"]').addClass('active');
+
+                        var navbarNav = document.querySelector('#navbarNav');
+                        if (navbarNav && navbarNav.classList.contains('show')) {
+                            navbarNav.classList.remove('show');
+                        }
+
+                        $('[data-toggle="tooltip"]').tooltip('hide');
+
+
+                        document.title = activeRoute.text() + ' | Digital Log';
+
+                        if (typeof (Storage) !== "undefined") {
+                            // Code for localStorage/sessionStorage.
+                            sessionStorage.setItem("redirect", '#' + e.detail.path);
+                        }
+
+                        gtag('config', 'UA-97985973-7', {
+                            'page_title': activeRoute.text(),
+                            'page_path': e.detail.path
+                        });
+
+
+                    }
+
+                });
+
+            },
+
+            _endSession: function (e) {
+                e.preventDefault();
+                window.location.pathname = '/logout';
+            },
+
+            /* setCookie: function (name, value, days) {
+                var expires = "";
+                if (days) {
+                    var date = new Date();
+                    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                    expires = "; expires=" + date.toUTCString();
+                }
+                document.cookie = name + "=" + (value || "") + expires + "; path=/";
+            },
+            getCookie: function (name) {
+                var nameEQ = name + "=";
+                var ca = document.cookie.split(';');
+                for (var i = 0; i < ca.length; i++) {
+                    var c = ca[i];
+                    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+                }
+                return null;
+            },
+            eraseCookie: function (name) {
+                document.cookie = name + '=; Max-Age=-99999999;';
+            }, */
+
+            _onResponse_checkStatus: function (e, request) {
+                // console.log(e.target.url, request.xhr, request.xhr.responseURL.indexOf(e.target.url) !== -1)
+                if (Offline.state === 'up' && request.xhr.responseURL.indexOf(e.target.url) !== -1) {
+                    this.async(function () {
+                        e.target.generateRequest();
+                    }, 5000);
+                } else {
+                    this._onError_checkStatus();
+                }
+            },
+
+            _onError_checkStatus: function (e) {
+                if (Offline.state === 'up') {
+                    window.location.reload(true);
+                }
+            },
+
+            _onResponse_checklistCount: function (e) {
+                // console.log('_onResponse_getChecklists', e.detail.response)
+
+                this.async(function () {
+                    e.target.generateRequest();
+                }, 10000);
+            },
+
+            _refreshChecklist: function (e) {
+                // console.log('_refreshChecklist', e, this.querySelector('#getChecklists').url)
+                this.querySelector('#checklistCount').generateRequest();
+            },
+
+            _toggleNavbar: function (e) {
+                var navbarNav = document.querySelector('#navbarNav');
+                if (navbarNav && navbarNav.classList.contains('show')) {
+                    navbarNav.classList.remove('show');
+                } else {
+                    navbarNav.classList.add('show');
+                }
+            },
+            /* _onError_checklistCount: function (e) {
+                e.target.generateRequest();
+            }, */
+            
+        });
+    </script>
+
+</dom-module>

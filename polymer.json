@@ -1,0 +1,73 @@
+{
+  "entrypoint": "public/index.html",
+  "shell": "public/elements/app-shell.html",
+  "fragments": [
+    "public/elements/view-not-found.html",
+    "public/elements/view-dashboard.html",
+    "public/elements/view-data-visulization.html",
+    "public/elements/view-checklist-search.html",
+    "public/elements/view-hierarchy-builder.html",
+    "public/elements/view-asset-parameters-builder.html",
+    "public/elements/view-template-builder.html",
+    "public/elements/view-checklist-builder.html",
+    "public/elements/user-management/view-users.html",
+    "public/elements/user-management/view-groups.html",
+    "public/elements/user-management/view-departments.html",
+    "public/elements/user-management/view-sections.html",
+    "public/elements/user-management/view-roles.html",
+    "public/elements/data-collector/view-inbox.html",
+    "public/elements/data-collector/view-claimed-checklist.html",
+    "public/elements/data-collector/view-review-checklist.html",
+    "public/elements/user-history/user-history.html"
+  ],
+  "sources": [
+    "manifest.json",
+    "package.json",
+    "server/*.js",
+    "public/favicon.*",
+    "public/*.*",
+    "public/elements/**/*",
+    "public/images/**/*",
+    "public/bower_components/webcomponentsjs/*.min.js",
+    "public/bower_components/jquery/dist/*.min.js",
+    "public/bower_components/jquery-ui/**/*.js",
+    "public/bower_components/jquery-ui/themes/base/*",
+    "public/bower_components/bootstrap/dist/**/*",
+    "public/bower_components/fontawesome/css/*.min.css",
+    "public/bower_components/fontawesome/webfonts/*",
+    "public/bower_components/jstree/dist/**/*",
+    "public/bower_components/jstree/dist/themes/default/*",
+    "public/bower_components/highcharts/*.js",
+    "public/bower_components/highcharts/modules/*.js",
+    "public/bower_components/daterangepicker/*",
+    "public/bower_components/moment/min/**/*",
+    "public/bower_components/select2/dist/**/*",
+    "public/bower_components/offline/**/*",
+    "public/bower_components/datatables.net/**/*",
+    "public/bower_components/datatables.net-bs4/**/*",
+    "public/bower_components/datatables.net-responsive/**/*",
+    "public/bower_components/datatables.net-responsive-bs4/**/*"
+  ],
+  "builds": [
+    {
+      "name": "digital-log",
+      "js": {
+        "compile": {
+          "exclude": ["*.min.js"]
+        },
+        "minify": {
+          "exclude": ["*.min.js"]
+        }
+      },
+      "css": {
+        "minify": {
+          "exclude": ["*.min.css"]
+        }
+      },
+      "html": {
+        "minify": true
+      },
+      "bundle": true
+    }
+  ]
+}

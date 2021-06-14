@@ -1,0 +1,92 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="users-list.html">
+<link rel="import" href="users-detail.html">
+
+<dom-module id="view-users">
+
+    <template>
+
+        <global-loader>
+            <iron-ajax auto id="getUsers" url="/users" method="GET" last-response="{{_response_getUsers}}"
+                loading="{{_loading_getUsers}}" on-response="_onResponse_getUsers">
+            </iron-ajax>
+        </global-loader>
+
+
+        <main class="d-flex h-100 ml-lg-3 p-0 pl-lg-5">
+            <users-list list-items='{{_response_getUsers}}' disable-auto-select="true"
+                on-selected-item-changed="_updateDetails" sort-order="ascending">
+                <template is="dom-if" if="{{!itemData}}" restamp>
+                    <div id="detailFallback" class="detail-fallback align-items-center d-flex h-100">
+                        <div class="text-center text-muted w-100">Select an item from the list to see the details.
+                        </div>
+                    </div>
+                </template>
+                <template is="dom-if" if="{{itemData}}" restamp>
+                    <users-detail item-data="{{itemData}}"></users-detail>
+                </template>
+            </users-list>
+        </main>
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "view-users",
+            properties: {
+                itemData: {
+                    type: Object,
+                    value: function () {
+                        return null
+                    }
+                }
+            },
+            observers: [],
+            listeners: {
+                'refresh-list': '_refreshList'
+            },
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            attached: function () {
+                var _root = this;
+            },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+
+            ready: function () { },
+            _updateDetails: function (e) {
+                var _root = this;
+                var selectedItem = e.target.listItems.find(function (item) {
+                    return item.user.id === e.detail.value;
+                });
+
+                _root.set("itemData", selectedItem);
+            },
+            _refreshList: function (e) {
+                // console.log('_refreshList', e);
+                var _root = this;
+                this.querySelector('#getUsers').generateRequest();
+            },
+            _onResponse_getUsers: function (e) {
+                // console.log('_onResponse_getUsers', e.detail.response);
+                var _root = this;
+                var activeListItem = document.querySelector('li.list-group-item.active');
+                if (activeListItem && e.detail.response) {
+                    var selectedItem = e.detail.response.find(function (item) {
+                        return item.user.id === activeListItem.dataset.listid;
+                    });
+                    // console.log('selectedItem', selectedItem)
+                    _root.set("itemData", selectedItem);
+                }
+
+            }
+        });
+    </script>
+
+</dom-module>

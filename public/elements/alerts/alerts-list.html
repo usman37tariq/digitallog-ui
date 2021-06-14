@@ -1,0 +1,461 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html" />
+<link rel="import" href="../../bower_components/global-var/global-var.html">
+<dom-module id="alerts-list">
+
+    <template>
+
+        <style>
+            .list-container {
+                height: calc(100vh - 10rem);
+                overflow-y: auto;
+            }
+
+            .has-search .form-control {
+                padding-left: 2.375rem;
+            }
+
+            .nav-link.active {
+                background: #dee2e6;
+            }
+
+            .has-search .form-control-feedback {
+                position: absolute;
+                z-index: 2;
+                display: block;
+                width: 2.375rem;
+                height: 2.375rem;
+                line-height: 2rem;
+                text-align: center;
+                pointer-events: none;
+                color: #aaa;
+            }
+
+            .type-red {
+                color: #e80000
+            }
+
+            .type-orange {
+                color: orange
+            }
+
+            .type-green {
+                color: #007900
+            }
+
+            .list-group-item.active {
+                background-color: #6c757d;
+                border-color: rgba(0, 0, 0, .125);
+                color: #efefef;
+            }
+
+            .list-group-item.active .text-black-50 {
+                color: rgba(255, 255, 255, .75) !important;
+            }
+
+
+            .list.constrained.detail-active {
+                display: none
+            }
+
+            .detail.list-active {
+                display: none
+            }
+
+            .back-link {
+                display: none
+            }
+
+            .detail.constrained .back-link {
+                display: block
+            }
+
+            .detail.constrained.list-active {
+                display: none
+            }
+
+            ::content .detail.constrained .detail-container {
+                height: auto !important;
+            }
+
+            .detail {
+                width: calc(100% - 25% - 64px);
+            }
+
+            .fa-bell {
+                font-size: 18px;
+            }
+
+            ::content .filters-container {
+                overflow-y: auto;
+                background: #dee2e6;
+            }
+
+            #sortBy,
+            #sortIcon {
+                cursor: pointer;
+            }
+
+
+            .alarmStatus.high {
+                color: #d00000;
+            }
+
+            .alarmStatus.medium {
+                color: #f2b600;
+            }
+
+            .alarmStatus,
+            .alarmStatus.low {
+                color: #4fbb00;
+            }
+        </style>
+
+        <div class="container-fluid h-100">
+            <div class="row ">
+                <nav class="bg-light  flex-lg-grow-0 sidebar   text-center border-right">
+                    <ul class="sub-nav nav flex-lg-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 active" href="#/alerts" data-toggle="tooltip"
+                                data-placement="right" title="Alerts">
+                                <i class="fas fa-bell"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 " href="#/alerts/fingerprint" data-toggle="tooltip"
+                                data-placement="right" title="Pattern Match">
+                                <i class="fas fa-fingerprint"></i>
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+
+                <div id="list" class="list w-25 bg-light border-right p-0">
+                    <div class="filters-container  p-2 border-bottom">
+                        <div class="d-flex header">
+                            <div class=" py-0 flex-fill lead" for="opcUA"><strong>Alerts</strong></div>
+                        </div>
+                    </div>
+                    <div class="filters-container px-2 pt-2 border-bottom bg-light">
+                        <div class="form-group has-search my-1 input-group-sm">
+                            <span class="fa fa-search form-control-feedback"></span>
+                            <input type="text" class="form-control" value="{{_query::input}}" placeholder="Search">
+                        </div>
+
+                        <div class=" form-group d-flex m-0 mt-2 text-black-50">
+                            <label for="sortBy" class="col-form-label mr-2 form-control-sm">Sort by: </label>
+                            <div class="flex-grow-1">
+                                <select class="form-control form-control-plaintext text-black-50 form-control-sm"
+                                    id="sortBy" on-change="_sortByChange">
+                                    <option value="title">Tag </option>
+                                    <option value="fingerprint">Alert Name</option>
+                                    <option value="created">Created on</option>
+                                    <option value="LastExecution">Last Execution</option>
+                                </select>
+                            </div>
+                            <div class="ml-1 col-form-label form-control-sm" on-click="_reverseSort">
+                                <i id="sortIcon" class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="list-container position-sticky">
+                        <ul id="list__body" class="list-group list-group-flush" on-scroll="_updateClass">
+                            <template is="dom-repeat" items="{{listItems}}" as="listItem"
+                                filter="{{_computeFilter(_query)}}" sort="{{_computeSort(sortBy,sortOrder)}}">
+                                <li id="{{listItem.id}}" data-listid$="{{listItem.id}}"
+                                    class$="list-group-item list-group-item-action pointer {{_computeClass(selectedItem,listItem.id)}}"
+                                    on-click="_selectItem">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div class="position-absolute">
+                                            <i
+                                                class$="fas fa-circle type-{{listItem.type}} alarmStatus {{listItem.priority}}"></i>
+                                        </div>
+                                        <div class="text-left pl-4 col-md-12">
+                                            <template is="dom-if" if="{{listItem.id}}">
+                                                <div>
+                                                    <span class="ID text-black-50 small">Case No: {{listItem.id}}
+                                                    </span>
+                                                    <template is="dom-if" if="{{listItem.threshold}}">
+                                                        <span class="similarity small text-black-50 float-right">
+                                                            Match: {{_matchPercentage(listItem.threshold)}}%</span>
+
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            <template is="dom-if" if="{{listItem.tag_name}}">
+                                                <div class="title">{{listItem.tag_name}}</div>
+                                            </template>
+                                            <template is="dom-if" if="{{listItem.fp_name}}">
+                                                <small class="fingerprint text-black-50">Alert name:
+                                                    {{listItem.fp_name}}</small>
+                                            </template>
+                                            <template is="dom-if" if="{{listItem.insertion_date}}">
+                                                <div class="created small text-black-50">Created :
+                                                    {{listItem.insertion_date}}
+                                                </div>
+                                            </template>
+                                            <template is="dom-if" if="{{listItem.last_execution_date}}">
+                                                <div class="LastExecution small text-black-50">Last Execution:
+                                                    {{listItem.last_execution_date}}
+                                                </div>
+                                            </template>
+
+                                        </div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <div id="detail" class="detail p-0 flex-grow-1 overflow-auto d-flex flex-column">
+                    <div class="flex-grow-0">
+                        <div class="back-link">
+                            <span class="btn btn-sm ml-3 my-2" on-click="_goBackToList"><i
+                                    class="fas fa-arrow-left mr-2"></i>Back</span>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 overflow-auto">
+                        <content></content>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <global-var name="selectedTagAlert" value="{{selectedTagAlert}}"></global-var>
+    </template>
+
+    <script>
+        Polymer({
+            is: "alerts-list",
+
+            behaviors: [
+                Polymer.IronResizableBehavior
+            ],
+
+            listeners: {
+                "iron-resize": "_calculateBounds"
+            },
+
+            properties: {
+                /**
+                 * Array of items to include in the list. Each item in the array should be an object with:
+                 * - id (used for fetching the details view)
+                 * - title
+                 * - subtitle
+                 * - severity (one of "important", "error", "warning", or "information")
+                 * - date (optional, should be valid <a href="https://www.w3.org/TR/NOTE-datetime">8601 date strings</a>)
+                 */
+                listItems: {
+                    type: Array,
+                    notify: true
+                },
+                /**
+                 * ID of the selected item, for pulling up the details to display in the right side of the inbox view.
+                 */
+                selectedItem: {
+                    type: String,
+                    notify: true
+                },
+                /**
+                 * Search query used to filter the list.
+                 */
+                _query: {
+                    type: String
+                },
+                /**
+                 * Property to sort the list by.
+                 */
+                sortBy: {
+                    type: String,
+                    value: "title"
+                },
+                /**
+                 * Sort order - ascending or descending.
+                 */
+                sortOrder: {
+                    type: String,
+                    value: "ascending"
+                },
+                /**
+                 * By default, the first item in the list will be selected.
+                 * Set this flag to "true" to disable this default selection.
+                 */
+                disableAutoSelect: {
+                    type: Boolean,
+                    value: false
+                }
+            },
+
+            created: function () {
+
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            ready: function () {
+
+
+            },
+
+            attached: function () {
+
+                this.async(function () {
+                    $('[data-toggle="tooltip"]').tooltip();
+                });
+            },
+
+            detached: function () {
+            },
+
+            attributeChanged: function (name, type) {
+
+            },
+
+            /**
+             * Figures out whether the item is currently selected.
+             */
+            _computeClass: function (selectedId, id) {
+                return (selectedId && String(selectedId) === String(id)) ? 'active' : '';
+            },
+
+            /**
+             * Adds visual style to the currently selected item and triggers display of the details.
+             */
+            _selectItem: function (evt) {
+                root = this;
+                // var seclectedTagId = evt.currentTarget.id;
+                var seclectedTagId = evt.currentTarget.dataset.listid;
+
+                // var otherItems = Polymer.dom(this.root).querySelectorAll('.active');
+                // for (var i = 0; i < otherItems.length; i++) {
+                //     // otherItems[i].classList.remove("active");
+                // };
+                document.getElementById(seclectedTagId).classList.add("active");
+                this.selectedItem = document.getElementById(seclectedTagId).id;
+                this.toggleClass('detail-active', true, this.$.list);
+                this.toggleClass('list-active', false, this.$.detail);
+
+            },
+            /**
+             * When the window or any parent container is resized, need to recalculate the bounds
+             * of the px-inbox and react accordingly - in constrained situations, the list and detail
+             * will not be displayed simultaneously but will toggle back and forth instead.
+             */
+            _calculateBounds: function (evt) {
+                this.debounce('resize', function () {
+                    if (this.getBoundingClientRect().width < 700) {
+                        this.toggleClass('constrained', true, this.$.list);
+                        this.toggleClass('constrained', true, this.$.detail);
+
+                        this.toggleClass('detail-active', false, this.$.list);
+                        this.toggleClass('list-active', true, this.$.detail);
+
+                    } else {
+                        this.toggleClass('constrained', false, this.$.list);
+                        this.toggleClass('constrained', false, this.$.detail);
+
+                        this.toggleClass('detail-active', true, this.$.list);
+                        this.toggleClass('list-active', false, this.$.detail);
+                    }
+                }, 300);
+            },
+            /**
+             * For small form factors, these classes are toggled in order to toggle back and forth
+             * between the list and detail views.
+             */
+            _goBackToList: function (evt) {
+                this.toggleClass('detail-active', false, this.$.list);
+                this.toggleClass('list-active', true, this.$.detail);
+            },
+            /**
+             * Searches through the list titles and subtitles and filters based on the query.
+             */
+            _computeFilter: function (query) {
+                if (!query) {
+                    // set filter to null to disable filtering
+                    return null;
+                } else {
+                    // return a filter function for the current search query
+                    query = query.toLowerCase();
+                    return function (listItem) {
+                        var title = listItem.tag_name.toLowerCase();
+                        var fingerprint = listItem.fp_name.toLowerCase();
+                        var createdDate = listItem.insertion_date.toLowerCase();
+                        var LastExecution = listItem.last_execution_date.toLowerCase();
+
+                        return (title.indexOf(query) != -1 ||
+                            fingerprint.indexOf(query) != -1 ||
+                            createdDate.indexOf(query) != -1 ||
+                            LastExecution.indexOf(query) != -1);
+                    };
+                }
+            },
+            /**
+             * Sort function for the array of list items.
+             */
+            _computeSort: function (sortBy, sortOrder) {
+                root = this;
+                sortBy = sortBy ? sortBy.toLowerCase().replace(/\s+/g, '') : '';
+                var asc = sortOrder === 'ascending';
+                // return sort function which maps severities to numeric values
+                if (asc) {
+                    return function (a, b) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : 0;
+                    }
+                } else if (!asc) {
+                    return function (b, a) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : -1;
+                    }
+                }
+
+            },
+            _reverseSort: function () {
+                if (this.sortOrder === 'ascending') {
+                    this.sortOrder = 'descending';
+                    this.$.sortIcon.classList.value = 'fas fa-arrow-up';
+                } else if (this.sortOrder === 'descending') {
+                    this.sortOrder = 'ascending';
+                    this.$.sortIcon.classList.value = 'fas fa-arrow-down';
+                }
+            },
+            _updateClass: function () {
+                this.debounce('_updateClass', function () {
+                    if (this.$.list__body.scrollTop > 0) {
+                        this.toggleClass('shadow-component', true, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    } else {
+                        this.toggleClass('shadow-component', false, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    }
+                }, 50);
+            },
+            _addAlarms: function () {
+                window.location.href = "#/alerts/add-alarms";
+            },
+            _editAlarms: function (evt) {
+                root = this;
+                var seclectedTagId = evt.currentTarget.dataset.listid;
+                for (var i = 0; i < root.listItems.length; i++) {
+                    if (root.listItems[i].id == seclectedTagId) {
+                        root.selectedTagAlert = root.listItems[i];
+                    }
+                }
+                // window.location.href = "#/alerts/edit-alarms";
+
+            },
+            _sortByChange: function (e) {
+                this.set('sortBy', e.target.value)
+            },
+            _matchPercentage: function (value) {
+                var match = value * 100
+                return Number.parseFloat(match).toPrecision(3)
+            },
+        });
+    </script>
+
+</dom-module>

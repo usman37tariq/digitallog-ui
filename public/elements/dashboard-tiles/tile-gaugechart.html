@@ -1,0 +1,286 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../global-loader/global-loader.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="tile-gaugechart">
+
+    <template>
+
+        <style>
+            :host,
+            ::content .graph-wrapper,
+            ::content .graph-container {
+                display: block;
+                height: 100%;
+                width: 100%;
+                max-height: 100%;
+                min-height: 208px;
+                min-width: 240px;
+                max-width: 100%;
+            }
+
+            .graph-wrapper {
+                position: relative;
+                overflow: hidden;
+            }
+
+            ::content .graph-container{
+                visibility: hidden;
+            }
+
+            .graph-wrapper .graph-info {
+                display: none;
+            }
+
+            .graph-wrapper:hover .graph-info {
+                display: block;
+                position: absolute;
+                bottom: 1rem;
+                right: 1rem;
+                color: rgba(0, 0, 0, .7);
+                background: rgba(0, 0, 0, 0.05);
+                padding: 5px 10px;
+                font-size: 11px;
+                border-radius: 10rem;
+                font-family: monospace;
+                z-index: 265;
+            }
+
+            ::content .graph-header .h4 {
+                word-break: break-all !important;
+            }
+
+            
+        </style>
+
+        <template is="dom-if" if="{{dataTags}}">
+            <template is="dom-if" if="{{_tagMaxDate(dataTile.tile_config.tag_id)}}">
+                <global-loader>
+                    <iron-ajax auto id="getTagTrends"
+                        url$="/getTagTrends/{{dataTile.tile_config.tag_id}}/{{_tagMaxDate(dataTile.tile_config.tag_id)}}/{{_tagMaxDate(dataTile.tile_config.tag_id)}}"
+                        on-response="_onResponse_getTagTrends"></iron-ajax>
+                </global-loader>
+            </template>
+        </template>
+
+
+        <div class="graph-wrapper p-1 h-100">
+            <div class="graph-info">L:{{dataLeft}}, T:{{dataTop}}, H:{{dataHeight}}, W:{{dataWidth}}</div>
+            <div class$="{{graphClasses}}">
+
+
+                <div class="graph-header pt-2 pl-3">
+                    <div class="font-weight-normal h5 text-muted m-0">{{dataTile.tile_config.tag_name}}</div>
+                </div>
+
+                <div id="gauge" class="chart-container"></div>
+
+            </div>
+
+
+
+
+        </div>
+    </template>
+
+
+    <script>
+        Polymer({
+            is: "tile-gaugechart",
+
+            properties: {
+                chartReady: {
+                    value: false
+                },
+                dataX: {
+                    notify: true
+                },
+                dataY: {
+                    notify: true
+                },
+                dataWidth: {
+                    notify: true
+                },
+                dataHeight: {
+                    notify: true
+                }
+            },
+
+            observers: [
+                '_updateChart(dataWidth, dataHeight)'
+            ],
+
+            _updateChart: function (dataWidth, dataHeight) {
+                var _root = this;
+
+                if (_root.hightChart && _root.headerHeight) {
+                    _root.hightChart.setSize(
+                        parseFloat(dataWidth - 10),
+                        parseFloat(_root.dataHeight - (_root.headerHeight + 18)),
+                        false
+                    );
+                }
+            },
+
+            created: function () {
+                /* console.log(this.localName + '#' + this.id + ' was created'); */
+            },
+
+            ready: function () {
+                /* console.log(this.localName + '#' + this.id + ' has local DOM initialized'); */
+            },
+
+            attached: function () {
+                var _root = this;
+                console.log(this.localName + '#' + this.dataTile.tile_id + ' was attached');
+
+                /* if (_root.dataTile) {
+                    // console.log('_root.dataTile', _root.dataTile);
+                    _root.end = new Date(_root.dataTile.tile_config.max_date);
+                    _root.start = moment(new Date(_root.dataTile.tile_config.max_date)).subtract(_root.dataTile.tile_config.graph_period, "hours").toDate();
+                    _root.$.getTagTrends.generateRequest();
+                } */
+            },
+
+            detached: function () {
+                /* console.log(this.localName + '#' + this.id + ' was detached'); */
+            },
+
+            attributeChanged: function (name, type) {
+                /* console.log(this.localName + '#' + this.id + ' attribute ' + name +
+                    ' was changed to ' + this.getAttribute(name)); */
+            },
+
+            _tagMaxDate: function (tagId) {
+                var _root = this;
+                var tagFound = _root.dataTags.find(function (item, i) {
+                    return item.tag_id === tagId
+                });
+                // console.log('tagFound', !isNaN(new Date(tagFound.max_date)));
+                if (tagFound && tagFound.max_date && !isNaN(new Date(tagFound.max_date))) {
+                    return this._timezoneConverter(new Date(tagFound.max_date));
+                }
+            },
+
+            _timezoneConverter: function (UNIX_timestamp) {
+                var a = new Date(UNIX_timestamp);
+                var year = a.getFullYear();
+                var month = a.getMonth() + 1;
+                var date = a.getDate();
+                var hour = a.getHours();
+                var min = a.getMinutes();
+                var sec = a.getSeconds();
+                var time = year + '-' + month + '-' + date + ' ' + hour + ':' + min + ':' + sec;
+                return time;
+            },
+            _onResponse_getTagTrends: function (e) {
+                var _root = this;
+                _root.headerHeight = _root.querySelector('.graph-header').getBoundingClientRect().height;
+
+                _root._data = e.detail.response.data;
+
+                var currentValue = _root._data.slice(-1)[0][1];
+                var unit = (_root.dataTile.tile_config.unit) ? _root.dataTile.tile_config.unit : '';
+                var minValue = (_root.dataTile.tile_config.min_value) ? _root.dataTile.tile_config.min_value : 0;
+                var maxValue = (_root.dataTile.tile_config.max_value) ? _root.dataTile.tile_config.max_value : 9e9;
+                // console.log('_root.maxValue', maxValue, parseFloat(maxValue), typeof(parseFloat(maxValue)))
+
+                var chartHeight = (_root.dataHeight) ? _root.dataHeight - (_root.headerHeight + 18) : 250;
+                var chartWidth = (_root.dataWidth) ? _root.dataWidth - 10 : '';
+
+                _root.hightChart = new Highcharts.chart(_root.$.gauge, {
+                    chart: {
+                        height: chartHeight,
+                        width: chartWidth,
+                        spacingTop: 10,
+                        spacingBottom: 10,
+                        spacingLeft: 0,
+                        spacingRight: 0,
+                        backgroundColor: 'transparent',
+                        type: 'solidgauge',
+                        events: {
+                            load: function (event) {
+                                _root.graphClasses = 'bg-white border graph-container overflow-hidden rounded h-100 visible';
+                                _root.chartReady = true;
+                            }
+                        }
+                    },
+
+                    series: [{
+                        name: 'Speed',
+                        data: [currentValue],
+                        dataLabels: {
+                            format:
+                                '<div style="text-align:center">' +
+                                '<span style="font-size:25px">{y}</span><br/>' +
+                                '<span style="font-size:12px;opacity:0.4">' + unit + '</span>' +
+                                '</div>'
+                        }
+                    }],
+
+                    title: null,
+
+                    navigator: {
+                        enabled: false
+                    },
+
+                    pane: {
+                        center: ['50%', '75%'],
+                        size: '125%',
+                        startAngle: -90,
+                        endAngle: 90,
+                        background: {
+                            backgroundColor:
+                                Highcharts.defaultOptions.legend.backgroundColor || '#EEE',
+                            innerRadius: '60%',
+                            outerRadius: '100%',
+                            shape: 'arc'
+                        },
+                    },
+                    // the value axis
+                    yAxis: {
+                        min: parseFloat(minValue),
+                        max: parseFloat(maxValue),
+                        stops: [
+                            [0.1, '#55BF3B'], // green
+                            [0.5, '#DDDF0D'], // yellow
+                            [0.9, '#DF5353'] // red
+                        ],
+                        lineWidth: 1,
+                        minorTickInterval: null,
+                        tickPositions: [parseFloat(minValue), parseFloat(maxValue)],
+                        tickAmount: 2,
+                        labels: {
+                            y: 15
+                        }
+                    },
+
+                    plotOptions: {
+                        solidgauge: {
+                            dataLabels: {
+                                y: 30,
+                                borderWidth: 0,
+                                useHTML: true
+                            }
+                        }
+                    },
+
+                    tooltip: {
+                        enabled: false
+                    },
+
+                    credits: {
+                        enabled: false
+                    },
+
+                    exporting: {
+                        enabled: false
+                    }
+
+                });
+            }
+        });
+    </script>
+
+</dom-module>

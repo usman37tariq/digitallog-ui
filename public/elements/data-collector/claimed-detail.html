@@ -1,0 +1,949 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html" />
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html" />
+<dom-module id="claimed-detail">
+    <template>
+
+        <style>
+            .text-break {
+                word-break: break-word !important;
+            }
+
+            [data-label]::before {
+                content: attr(data-label);
+            }
+
+            .remarks {
+                margin-top: -40px;
+            }
+
+            td.cmnts {
+                white-space: pre-wrap;
+            }
+
+            td.cmnts:before {
+                content: attr(data-label);
+                float: left;
+                font-size: 16px;
+                width: 100%;
+            }
+
+            .modal-cmnts {
+                max-width: 600px;
+            }
+        </style>
+        <!-- {{checklistScheduleId}} -->
+
+        <global-loader>
+            <iron-ajax id="_checklistStructureItems"
+                url$="/datacollector/getChecklistData/{{itemData.checklistSchedule.checklistScheduleId}}" method="GET"
+                last-response="{{_response_checklistStructureItems}}" loading="{{_loading__checklistStructureItems}}">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="_skipChechlist" method="POST" url="/checklist/skip" content-type="application/json"
+                on-response="_onResponse_skipChechlist">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax id="_submitChechlist" method="POST" url="/checklist/submit" content-type="application/json"
+                on-response="_onResponse_submitChechlist">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="_saveChechlist" method="POST" url="/checklist/save" content-type="application/json"
+                on-response="_onResponse_saveChechlist">
+            </iron-ajax>
+        </global-loader>
+
+
+
+        <template is="dom-if" if="{{!_loading__checklistStructureItems}}" restamp>
+            <div class="detail d-flex flex-column">
+                <div class="flex-grow-0 ">
+                    <div class="p-3 bg-secondary text-light ">
+                        <div class="d-flex flex-md-nowrap flex-wrap-reverse">
+                            <div class="col-md-6 p-0 ">
+                                <div class="h5 text-break " title="{{itemData.checklistSchedule.checklist.name}}">
+                                    {{itemData.checklistSchedule.checklist.name}}
+                                </div>
+
+                                <div class="text-break " title="{{itemData.checklistSchedule.checklist.description}}"
+                                    data-label="Description: ">
+                                    {{itemData.checklistSchedule.checklist.description}}
+                                </div>
+                                <div class="text-break "
+                                    title="{{itemData.checklistSchedule.checklist.department.name}}"
+                                    data-label="Department: ">
+                                    {{itemData.checklistSchedule.checklist.section.department.name}}
+                                </div>
+                                <div class="text-break "
+                                    title="{{itemData.checklistSchedule.checklist.section.sectionName}}"
+                                    data-label="Section: ">
+                                    {{itemData.checklistSchedule.checklist.section.sectionName}}
+                                </div>
+
+                                <template is="dom-if" if="{{_response_checklistStructureItems.remarks}}" restamp>
+                                    <div class="text-break font-italic text-warning" data-label="Remarks: ">{{_response_checklistStructureItems.remarks}}</div>
+                                </template>
+
+
+                            </div>
+                            <div class="col-md-6 d-flex flex-column item-actions justify-content-end p-0 ">
+                                <div class="col mb-3 p-0 text-left text-md-right">
+
+                                    <button class="btn btn-outline-light btn-sm " title="Save"
+                                        on-click="_confirm_saveClaimedChecklist"
+                                        data-checklist-schedule-id$="{{itemData.checklistSchedule.checklistScheduleId}}"
+                                        data-checklist-id$="{{itemData.checklistSchedule.checklist.checklistId}}">
+                                        <i class="fas fa-save mr-1 "></i> Save
+                                    </button>
+
+                                    <button class="btn btn-outline-light btn-sm " title="Skip" on-click="_skipChecklist"
+                                        data-checklist-schedule-id$="{{itemData.checklistSchedule.checklistScheduleId}}">
+                                        <i class="fas fa-step-forward mr-1 "></i> Skip
+                                    </button>
+
+                                    <button class="btn btn-light btn-sm " title="Submit" on-click="_submitChecklist"
+                                        data-checklist-schedule-id$="{{itemData.checklistSchedule.checklistScheduleId}}"
+                                        data-checklist-id$="{{itemData.checklistSchedule.checklist.checklistId}}"
+                                        data-checklist-data-entry$="{{_response_checklistStructureItems.dataEntryTimestamp}}">
+                                        <i class="fas fa-check mr-1 "></i> Submit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+
+
+                <div class="flex-grow-1 overflow-auto ">
+                    <div class="bg-white ">
+                        <table class="table table-hover m-0 ">
+
+
+
+                            <thead class="thead-light ">
+                                <tr>
+                                    <th scope="col">
+                                        Description
+                                    </th>
+                                    <th scope="col" class="text-center" style="width: 350px">
+                                        Input Field
+                                    </th>
+                                    <th scope="col" class="text-center" style="width: 1px">
+                                        UOM
+                                    </th>
+                                    <th scope="col" class="text-center" style="width: 1px">
+                                        Low Limit
+                                    </th>
+                                    <th scope="col" class="text-center" style="width: 1px">
+                                        High limit
+                                    </th>
+
+                                    <th scope="col" class="text-center" style="width: 1px">
+                                        Comments
+                                    </th>
+                                </tr>
+                            </thead>
+
+
+
+                            <tbody>
+                                <template is="dom-repeat"
+                                    items="{{_response_checklistStructureItems.checklistStructure}}" as="checklist">
+                                    <tr class="bg-light text-black h6 ">
+                                        <td colspan="6">
+                                            <i class="fas fa-cogs "></i> <span
+                                                data-label="Location/Asset: ">{{checklist.name}}</span>
+                                        </td>
+                                    </tr>
+
+                                    <template is="dom-repeat" items="{{checklist.structure}}" as="parameter">
+
+                                        <tr data-checklist-field-id$="{{parameter.templateFieldId}}"
+                                            data-template-id$="{{parameter.templateId}}">
+                                            <td>
+                                                {{parameter.description}}
+                                            </td>
+                                            <td>
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'number')}}"
+                                                    restamp>
+                                                    <!-- <form id="_form_my"> -->
+                                                    <input type="text"
+                                                        class="form-control form-control-sm m-auto number"
+                                                        value$="{{parameter.value}}" on-input="_validate"
+                                                        title$="Enter {{parameter.fieldType}}" maxlength="17"
+                                                        required />
+                                                    <!-- <template is="dom-if" if="{{_box_check}}">
+                                                                <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                                                    {{_box_check}}
+                                                                </div>
+                                                            </template> -->
+                                                    <!-- </form> -->
+                                                </template>
+
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'text')}}"
+                                                    restamp>
+                                                    <input maxlength="100" type$="{{parameter.fieldType}}"
+                                                        class="form-control form-control-sm m-auto text"
+                                                        title$="Enter {{parameter.fieldType}}"
+                                                        value$="{{parameter.value}}" required />
+                                                </template>
+
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'oknotok')}}"
+                                                    restamp>
+                                                    <div class="custom-control custom-radio custom-control-inline">
+                                                        <input type="radio" id$="ok_{{parameter.templateFieldId}}"
+                                                            name="oknotok_{{parameter.templateFieldId}}"
+                                                            class="custom-control-input oknotok"
+                                                            checked="{{_isEqual(parameter.value, 1)}}" value="1" />
+                                                        <label class="custom-control-label"
+                                                            for$="ok_{{parameter.templateFieldId}}">Ok</label>
+                                                    </div>
+                                                    <div class="custom-control custom-radio custom-control-inline">
+                                                        <input type="radio" id$="notok_{{parameter.templateFieldId}}"
+                                                            name="oknotok_{{parameter.templateFieldId}}"
+                                                            class="custom-control-input oknotok"
+                                                            checked="{{_isEqual(parameter.value, 0)}}" value="0" />
+                                                        <label class="custom-control-label"
+                                                            for$="notok_{{parameter.templateFieldId}}">Not-Ok</label>
+                                                    </div>
+                                                </template>
+
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'yesno')}}"
+                                                    restamp>
+                                                    <div class="custom-control custom-radio custom-control-inline">
+                                                        <input type="radio" id$="yes_{{parameter.templateFieldId}}"
+                                                            name="yesno_{{parameter.templateFieldId}}"
+                                                            class="custom-control-input yesno"
+                                                            checked="{{_isEqual(parameter.value, 1)}}" value="1" />
+                                                        <label class="custom-control-label"
+                                                            for$="yes_{{parameter.templateFieldId}}">Yes</label>
+                                                    </div>
+                                                    <div class="custom-control custom-radio custom-control-inline">
+                                                        <input type="radio" id$="no_{{parameter.templateFieldId}}"
+                                                            name="yesno_{{parameter.templateFieldId}}"
+                                                            class="custom-control-input yesno"
+                                                            checked="{{_isEqual(parameter.value, 0)}}" value="0" />
+                                                        <label class="custom-control-label"
+                                                            for$="no_{{parameter.templateFieldId}}">No</label>
+                                                    </div>
+                                                </template>
+                                            </td>
+                                            <td class="text-center">
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'number')}}"
+                                                    restamp>
+                                                    {{parameter.unitOfMeasure}}
+                                                </template>
+                                            </td>
+                                            <td class="text-center">
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'number')}}"
+                                                    restamp>
+                                                    {{parameter.lowerLimit}}
+                                                </template>
+                                            </td>
+                                            <td class="text-center">
+                                                <template is="dom-if" if="{{_isEqual(parameter.fieldType, 'number')}}"
+                                                    restamp>
+                                                    {{parameter.upperLimit}}
+                                                </template>
+                                            </td>
+                                            <td class="text-center">
+                                                <button on-click="_fieldComments"
+                                                    class="btn btn-outline-dark btn-sm mt-n1 border-0"
+                                                    title="Enter comments"
+                                                    data-field-id$="{{parameter.templateFieldId}}">
+                                                    <i class="fas fa-sm fa-comment-alt"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                        <template is="dom-if" if="{{!_showRemarks(parameter.remarks)}}" restamp>
+                                            <tr class="alert-warning font-italic text-muted d-none">
+                                                <!-- <td>Comments:</td> -->
+                                                <td colspan="7" class="cmnts"
+                                                    data-field-id$="{{parameter.templateFieldId}}"
+                                                    data-checklist-field-message$="{{parameter.templateFieldId}}"
+                                                    title="Comments" data-label="Comments:">{{parameter.remarks}}</td>
+                                            </tr>
+                                        </template>
+
+                                        <template is="dom-if" if="{{_showRemarks(parameter.remarks)}}" restamp>
+
+                                            <tr class="alert-warning font-italic text-muted">
+                                                <td colspan="7" class="cmnts"
+                                                    data-field-id$="{{parameter.templateFieldId}}"
+                                                    data-checklist-field-message$="{{parameter.templateFieldId}}"
+                                                    title="Comments" data-label="Comments:">{{parameter.remarks}}
+                                                </td>
+                                            </tr>
+                                        </template>
+
+
+
+                                    </template>
+                                </template>
+                            </tbody>
+
+
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+
+
+
+
+
+
+
+
+
+        <!-- Modal - addComments -->
+        <div class="modal" id="_modal_addComments" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-cmnts" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Comments</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_addComments">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <form id="_form_addComments">
+                        <div class="modal-body">
+                            <div class="form-group m-0">
+                                <textarea maxlength="40000" class="form-control" id="_comment_addComments"
+                                    rows="5"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_addComments}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_addComments}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_addComments">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_addComments">
+                                    Enter
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+
+
+
+        <!-- Modal - skipChechlist -->
+        <div class="modal" id="_modal_skipChechlist" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-cmnts" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Remarks <span class="text-danger">*</span></h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_skipChechlist">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <form id="_form_skipChechlist">
+                        <div class="modal-body">
+                            <div class="form-group m-0">
+                                <textarea maxlength="40000" class="form-control" id="_comment_skipChechlist" rows="5"
+                                    required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_skipChechlist}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_skipChechlist}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_skipChechlist">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_skipChechlist">
+                                    <i class="fas fa-step-forward mr-1"></i> Skip
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+
+
+
+        <!-- Modal - submitClaimedChecklist -->
+        <div class="modal" id="_modal_submitClaimedChecklist" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered modal-cmnts" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Submit checklist</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_submitClaimedChecklist">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <div class="modal-body">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Submission Date</span>
+                            </div>
+                            <input type="text" id="submitionDate" aria-label="Submission Date" class="form-control">
+                        </div>
+                        Are you sure, you want to submit?
+                    </div>
+
+
+                    <div class="modal-footer flex-column align-items-stretch">
+                        <div>
+                            <template is="dom-if" if="{{_status_submitClaimedChecklist}}">
+                                <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                    {{_status_submitClaimedChecklist}}
+                                </div>
+                            </template>
+                        </div>
+                        <div class="text-right">
+                            <button type="button" class="btn btn-light" data-dismiss="modal"
+                                on-click="_cancel_submitClaimedChecklist">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-dark" on-click="_confirm_submitClaimedChecklist">
+                                <i class="fas fa-step-check mr-1"></i> Submit
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "claimed-detail",
+
+            properties: {
+                itemData: {
+                    type: Object,
+                    value: function () {
+                        return null
+                    },
+                    observer: '_itemDataChanged'
+                },
+                userId: {
+                    value: function () {
+                        return window.user_id
+                    }
+                },
+                _query: {
+                    type: String,
+                    value: ''
+                },
+            },
+
+            _itemDataChanged: function (e) {
+                var _root = this;
+
+                if (_root.itemData && _root.itemData.checklistSchedule.checklistScheduleId) {
+                    _root.$._checklistStructureItems.generateRequest();
+                }
+
+                if (_root.querySelectorAll('td[data-checklist-field-message]').length) {
+                    var checklistMessageFields = _root.querySelectorAll('td[data-checklist-field-message]');
+                    for (var i = 0; i < checklistMessageFields.length; i++) {
+                        var checklistMessageField = checklistMessageFields[i];
+                        checklistMessageField.innerText = null;
+                        checklistMessageField.parentNode.classList.add('d-none');
+                    }
+                }
+            },
+
+            created: function () {
+                document.documentElement.classList.remove("in-progress");
+            },
+
+            ready: function () { },
+
+            attached: function () {
+                $('#submitionDate').daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    maxDate: moment().format('DD-MM-YYYY hh:mm A'),
+                    startDate: moment().format('DD-MM-YYYY hh:mm A'),
+                    // endDate: moment().format('DD-MM-YYYY hh:mm A'),
+                    maxYear: parseInt(moment().format('YYYY'), 10),
+                    autoApply: true,
+                    locale: {
+                        format: 'DD-MM-YYYY hh:mm A'
+                    }
+                }, function (start) {
+                    // console.log('New date range selected: ' + start.format('x'));
+
+                });
+            },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) {
+            },
+
+            _isEqual: function (str1, str2) {
+                return str1 === str2;
+            },
+
+            _showRemarks: function (remarks) {
+                return !!remarks
+            },
+
+
+            _validate: function (evt) {
+                // debugger
+                evt.currentTarget.value = evt.currentTarget.value.replace(/[^0-9.\-]/g, '').replace(/(\..*)\./g, '$1')
+                    .replace(/(?!^)-/g, '');
+            },
+
+
+
+
+
+
+
+            _fieldComments: function (e) {
+                e.preventDefault();
+                var _root = this;
+                var currentFieldId = _root.currentFieldId = e.currentTarget.dataset.fieldId;
+                var currentField = _root.querySelector('td[data-field-id="' + _root.currentFieldId + '"]');
+
+                _root.querySelector('#_form_addComments').reset();
+
+                _root.querySelector('#_comment_addComments').value = currentField.innerText.trim();
+
+                $(_root.$._modal_addComments)
+                    .modal({
+                        backdrop: "static",
+                        show: true
+                    });
+            },
+            _confirm_addComments: function (e) {
+                e.preventDefault();
+                var _root = this;
+                var currentField = _root.querySelector('td[data-field-id="' + _root.currentFieldId + '"]');
+                currentField.innerText = _root.querySelector('#_comment_addComments').value;
+
+                if (currentField.innerText.length) {
+                    currentField.parentNode.classList.remove('d-none');
+                } else {
+                    currentField.parentNode.classList.add('d-none')
+                }
+
+
+                $(_root.$._modal_addComments)
+                    .modal('hide');
+            },
+            _cancel_addComments: function (e) { },
+
+
+
+
+
+
+
+
+
+
+            _skipChecklist: function (e) {
+                e.preventDefault();
+                var _root = this;
+
+                _root.querySelector('#_form_skipChechlist').reset();
+
+                _root.currentChecklistScheduleId = e.currentTarget.dataset.checklistScheduleId;
+                $(_root.$._modal_skipChechlist)
+                    .modal({
+                        backdrop: "static",
+                        show: true
+                    });
+            },
+            _confirm_skipChechlist: function (e) {
+                var _root = this;
+                var _form_skipChechlist = _root.querySelector('#_form_skipChechlist');
+
+                if (_form_skipChechlist.checkValidity()) {
+                    e.preventDefault();
+
+                    var _skipChechlist = _root.querySelector('#_skipChechlist');
+                    var _skipChechlisttData = new FormData();
+
+                    var _comment_skipChechlist = _root.querySelector('#_comment_skipChechlist').value;
+
+                    _skipChechlisttData = {
+                        "checklistSchedule": {
+                            "checklistScheduleId": parseInt(_root.currentChecklistScheduleId)
+                        },
+                        "remarks": _comment_skipChechlist,
+                        "user": {
+                            "id": _root.userId
+                        }
+                    }
+                    // console.log('_skipChechlisttData', _skipChechlisttData);
+                    _skipChechlist.body = _skipChechlisttData;
+
+                    _skipChechlist.generateRequest();
+
+                    $(_root.$._modal_skipChechlist).modal('hide');
+                }
+            },
+            _cancel_skipChechlist: function (e) { },
+            _onResponse_skipChechlist: function (e) {
+                // console.log('_onResponse_skipChechlist', e.detail.response);
+                this._refreshList();
+            },
+
+
+
+
+
+
+
+
+
+
+            _submitChecklist: function (e) {
+
+
+                var _root = this;
+
+                _root.currentChecklistScheduleId = e.currentTarget.dataset.checklistScheduleId;
+                _root.currentChecklistId = e.currentTarget.dataset.checklistId;
+                var dataEntry = e.currentTarget.dataset.checklistDataEntry;
+
+                _root._status_submitClaimedChecklist = null;
+                $(_root.$._modal_submitClaimedChecklist)
+                    .modal({
+                        backdrop: "static",
+                        show: true
+                    });
+
+                if (dataEntry && dataEntry != 0) {
+                    _root._setSubmitionDate(dataEntry);
+                }
+                else {
+                    _root._setSubmitionDate(moment().format('x'));
+                }
+
+            },
+            _confirm_submitClaimedChecklist: function (e) {
+
+                e.preventDefault();
+                var _root = this;
+
+                var _submitChechlist = _root.querySelector('#_submitChechlist');
+                var _submitChechlistData = new FormData();
+
+                var checklistFieldsArr = [];
+
+                var checklistFields = _root.querySelectorAll('tr[data-checklist-field-id]');
+                for (var c = 0; c < checklistFields.length; c++) {
+                    var item = checklistFields[c];
+                    var commentField = _root.querySelector('td[data-checklist-field-message="' + item.dataset.checklistFieldId + '"]');
+                    var comment = commentField.innerText.trim();
+
+                    var _numberField = item.querySelector('input.number');
+                    var _textField = item.querySelector('input.text');
+
+                    var _oknotokFields = item.querySelectorAll('input.oknotok');
+                    var _oknotokFieldValue = null;
+                    for (var i = 0; i < _oknotokFields.length; i++) {
+                        if (_oknotokFields[i].checked) {
+                            _oknotokFieldValue = _oknotokFields[i].value.toString();
+                        }
+                    }
+
+
+                    var _yesnoFields = item.querySelectorAll('input.yesno');
+                    var _yesnoFieldValue = null;
+                    for (var j = 0; j < _yesnoFields.length; j++) {
+                        if (_yesnoFields[j].checked) {
+                            _yesnoFieldValue = _yesnoFields[j].value.toString();
+                        }
+                    }
+
+                    if (_numberField) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _numberField.value || ''
+                        });
+                    } else if (_textField) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _textField.value || ''
+                        });
+                    } else if (_oknotokFields.length) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _oknotokFieldValue
+                        });
+                    } else if (_yesnoFields.length) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _yesnoFieldValue
+                        });
+                    }
+                }
+
+
+
+                var timePicker = document.querySelector('#submitionDate').value;
+                _submitChechlistData = {
+                    "checklist": {
+                        "checklistId": _root.currentChecklistId
+                    },
+                    "checklistFields": checklistFieldsArr,
+                    "checklistRemarks": "string",
+                    "user": {
+                        "id": _root.userId
+                    },
+                    "checklistSchedule": {
+                        "checklistScheduleId": _root.currentChecklistScheduleId
+                    },
+                    "timeStamp": moment(timePicker, 'DD-MM-YYYY hh:mm A').format('x')
+                }
+
+                // console.log('_submitChechlistData', _submitChechlistData);
+                _submitChechlist.body = _submitChechlistData;
+
+                _submitChechlist.generateRequest();
+
+            },
+            _confirm_saveClaimedChecklist: function (e) {
+                var _root = this;
+
+                _root.currentChecklistScheduleId = e.currentTarget.dataset.checklistScheduleId;
+                _root.currentChecklistId = e.currentTarget.dataset.checklistId;
+
+
+
+
+
+
+                e.preventDefault();
+
+                var _saveChechlist = _root.querySelector('#_saveChechlist');
+                var _saveChechlistData = new FormData();
+
+                var checklistFieldsArr = [];
+
+                var checklistFields = _root.querySelectorAll('tr[data-checklist-field-id]');
+                for (var c = 0; c < checklistFields.length; c++) {
+                    var item = checklistFields[c];
+                    var commentField = _root.querySelector('td[data-checklist-field-message="' + item.dataset.checklistFieldId + '"]');
+                    var comment = commentField.innerText.trim();
+
+                    var _numberField = item.querySelector('input.number');
+                    var _textField = item.querySelector('input.text');
+
+                    var _oknotokFields = item.querySelectorAll('input.oknotok');
+                    var _oknotokFieldValue = null;
+                    for (var i = 0; i < _oknotokFields.length; i++) {
+                        if (_oknotokFields[i].checked) {
+                            _oknotokFieldValue = _oknotokFields[i].value.toString();
+                        }
+                    }
+
+
+                    var _yesnoFields = item.querySelectorAll('input.yesno');
+                    var _yesnoFieldValue = null;
+                    for (var j = 0; j < _yesnoFields.length; j++) {
+                        if (_yesnoFields[j].checked) {
+                            _yesnoFieldValue = _yesnoFields[j].value.toString();
+                        }
+                    }
+
+                    if (_numberField) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _numberField.value || ''
+                        });
+                    } else if (_textField) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _textField.value || ''
+                        });
+                    } else if (_oknotokFields.length) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _oknotokFieldValue
+                        });
+                    } else if (_yesnoFields.length) {
+                        checklistFieldsArr.push({
+                            "fieldRemarks": comment,
+                            "templateStructure": {
+                                "fieldId": item.dataset.checklistFieldId,
+                                "templateId": item.dataset.templateId
+                            },
+                            "value": _yesnoFieldValue
+                        });
+                    }
+                }
+
+
+
+                var timePicker = document.querySelector('#submitionDate').value;
+                _saveChechlistData = {
+                    "checklist": {
+                        "checklistId": _root.currentChecklistId
+                    },
+                    "checklistFields": checklistFieldsArr,
+                    "checklistRemarks": "string",
+                    "user": {
+                        "id": _root.userId
+                    },
+                    "checklistSchedule": {
+                        "checklistScheduleId": _root.currentChecklistScheduleId
+                    },
+                    "timeStamp": moment(timePicker, 'DD-MM-YYYY hh:mm A').format('x')
+                }
+
+                // console.log('_saveChechlistData', _saveChechlistData);
+                _saveChechlist.body = _saveChechlistData;
+
+                _saveChechlist.generateRequest();
+
+            },
+            _close_submitClaimedChecklist: function (e) { },
+            _cancel_submitClaimedChecklist: function (e) { },
+
+
+            _onResponse_submitChechlist: function (e) {
+                if (e.detail.response && e.detail.response.error) {
+                    this._status_submitClaimedChecklist = e.detail.response.error;
+                }
+                else {
+                    $(this.$._modal_submitClaimedChecklist).modal('hide');
+                    this._refreshList();
+                }
+            },
+
+            _onResponse_saveChechlist: function (e) {
+                if (e.detail.response && e.detail.response.error) {
+                    this._status_saveClaimedChecklist = e.detail.response.error;
+                }
+                else {
+                    // $(this.$._modal_saveClaimedChecklist).modal('hide');
+                }
+            },
+
+
+
+
+
+
+
+
+
+            _setSubmitionDate: function (timeStamp) {
+                var _root = this;
+                var datetime = moment(timeStamp, 'x').format('DD-MM-YYYY hh:mm A')
+                $('#submitionDate').data('daterangepicker').setStartDate(datetime);
+            },
+
+
+
+
+
+
+
+
+
+
+            _refreshList: function () {
+                this.fire('refresh-list');
+            },
+
+
+        });
+    </script>
+</dom-module>

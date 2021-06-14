@@ -1,0 +1,1019 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/global-var/global-var.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<dom-module id="checklist-builder-detail">
+
+    <template>
+
+        <style>
+            .text-break {
+                word-break: break-word !important;
+            }
+
+            .form-control[readonly]:not([disabled]) {
+                background-color: initial;
+            }
+
+            .input-group-first-control {
+                border-top-left-radius: .2em !important;
+                border-bottom-left-radius: .2em !important;
+            }
+
+            .input-group-last-control {
+                border-top-right-radius: .2em !important;
+                border-bottom-right-radius: .2em !important;
+            }
+        </style>
+
+
+        <global-loader>
+            <iron-ajax id="_checklistStructureItems" url$="/checklist/structure/{{itemData.id}}" method="GET"
+                last-response="{{_response_checklistStructureItems}}"
+                on-loading="{{_onLoading__checklistStructureItems}}" on-response="_onResponse_checklistStructureItems">
+            </iron-ajax>
+        </global-loader>
+
+
+
+        <global-loader>
+            <iron-ajax id="addAsset" method="POST" url="/checklist/assettemplate" content-type="application/json"
+                on-response="_onResponse_addAsset">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="deleteAsset" method="DELETE" url="/checklist/structure"
+                on-response="_onResponse_deleteAsset">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax auto id="_assetTemplateItems" url="/hierarchy/templatenodes" method="GET"
+                last-response="{{_response_assetTemplateItems}}" on-loading="{{_loading_assetTemplateItems}}">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="saveChecklist" method="PUT" url="/checklist/scheduling" content-type="application/json"
+                on-response="_onResponse_saveChecklist">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="activateChecklist" method="GET" url$="/checklist/activate/{{itemData.id}}"
+                on-response="_onResponse_activateChecklist">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="deactivateChecklist" method="GET" url$="/checklist/deactivate/{{itemData.id}}"
+                on-response="_onResponse_deactivateChecklist">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax auto id="getUsers" url="/users" method="GET" last-response="{{_response_getUsers}}"
+                loading="{{_loading_getUsers}}">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax auto id="getGroups" url="/groups" method="GET" last-response="{{_response_getGroups}}"
+                loading="{{_loading_getGroups}}">
+            </iron-ajax>
+        </global-loader>
+
+
+
+        <div class="detail d-flex flex-column h-100">
+
+            <div class="flex-grow-0">
+                <div class="p-3 bg-secondary text-light">
+                    <div class="d-flex">
+                        <div class="col-4 p-0">
+                            <div class="h5 text-break" title="{{itemData.name}}">
+                                {{itemData.name}}</div>
+                            <div class="text-break" title="{{_response_checklistStructureItems.checklist.description}}">
+                                Description:
+                                {{_response_checklistStructureItems.checklist.description}}</div>
+                            <div class="text-break" title="{{itemData.section.department.name}}">
+                                Department:
+                                {{itemData.section.department.name}}</div>
+                            <div class="text-break" title="{{itemData.section.sectionName}}">Section:
+                                {{itemData.section.sectionName}}</div>
+
+                            <div class="text-break">Status:
+                                <template is="dom-if"
+                                    if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'PENDING')}}"
+                                    restamp>
+                                    <span
+                                        class="badge alert-warning d-inline-block px-2 rounded">{{_response_checklistStructureItems.checklist.activationStatus}}</span>
+                                </template>
+
+                                <template is="dom-if"
+                                    if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}"
+                                    restamp>
+                                    <span
+                                        class="badge alert-success d-inline-block px-2 rounded">{{_response_checklistStructureItems.checklist.activationStatus}}</span>
+                                </template></div>
+                        </div>
+                        <div class="col-8 d-flex flex-column item-actions justify-content-end p-0">
+                            <template is="dom-if"
+                                if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'PENDING')}}"
+                                restamp>
+                                <div class="col p-0 text-right mb-3">
+                                    <button class="btn btn-light btn-sm" on-click="_addAsset" title="Add Location/Asset"
+                                        data-checklist-id$="{{_response_checklistStructureItems.checklist.checklistId}}"><i
+                                            class="fas fa-plus mr-1"></i>
+                                        Add Location/Asset</button>
+                                </div>
+                            </template>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="flex-grow-1 overflow-auto">
+                <div class="p-4 bg-light text-dark border-bottom">
+
+                    <form id="_form_saveChecklist">
+                        <div class="d-flex flex-wrap">
+
+                            <div class="col-4 col-md-2  p-0">
+                                Checklist configuration
+                            </div>
+                            <div class="col-8 col-md-10 p-0 text-right">
+                                <template is="dom-if"
+                                    if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'PENDING')}}"
+                                    restamp>
+
+                                    <template is="dom-if" if="{{_status__activateChecklist}}" restamp>
+                                        <div class="alert alert-danger d-inline mr-3 px-2 py-1 text-danger"
+                                            role="alert">
+                                            {{_status__activateChecklist}}
+                                        </div>
+                                    </template>
+
+                                    <span>
+                                        <button class="btn btn-outline-secondary btn-sm mt-n2 mr-2"
+                                            id="_btn_saveChecklist" on-click="_saveChecklist" title="Save configuration"
+                                            data-checklist-id$="{{_response_checklistStructureItems.checklist.checklistId}}"
+                                            type="submit"><i class="fas fa-save mr-1"></i>
+                                            Save configuration</button>
+
+                                        <button class="btn btn-success btn-sm mt-n2" on-click="_activateChecklist"
+                                            title="Activate checklist"
+                                            data-checklist-id$="{{_response_checklistStructureItems.checklist.checklistId}}"><i
+                                                class="fas fa-check"></i>
+                                            Activate checklist</button>
+                                    </span>
+                                </template>
+
+                                <template is="dom-if"
+                                    if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}"
+                                    restamp>
+                                    <button class="btn btn-danger btn-sm mt-n2" on-click="_deactivateChecklist"
+                                        title="Deactivate checklist"
+                                        data-checklist-id$="{{_response_checklistStructureItems.checklist.checklistId}}"><i
+                                            class="fas fa-times"></i>
+                                        Deactivate checklist</button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap pt-3 mx-n3 my-n2">
+                            <div class="col-6 my-2">
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <label class="input-group-text">Start
+                                            Date <span class="text-danger">*</span></label>
+                                    </div>
+                                    <input type="text" readonly class="form-control form-control-picker"
+                                        id="_startDate_saveChecklist"
+                                        data-value$="{{_displayChecklistDate(_response_checklistStructureItems.checklist.startTime)}}"
+                                        value$="{{_displayChecklistDate(_response_checklistStructureItems.checklist.startTime)}}"
+                                        required
+                                        disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                </div>
+                            </div>
+                            <div class="col-6 my-2">
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+
+                                        <template is="dom-if"
+                                            if="{{!_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                            <div class="input-group-first-control input-group-text border-right-0">
+                                                <input on-click="_no_endDate" type="checkbox"
+                                                    checked$="{{!_isEqual(_response_checklistStructureItems.checklist.endTime, '10413774000000')}}">
+                                            </div>
+                                            <label class="input-group-text">End
+                                                Date <span class="text-danger">*</span></label>
+                                        </template>
+
+                                        <template is="dom-if"
+                                            if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                            <label class="input-group-first-control input-group-text">End
+                                                Date <span class="text-danger">*</span></label>
+                                        </template>
+
+
+
+                                    </div>
+                                    <template is="dom-if" if="{{no_endDate}}" restamp>
+                                        <input type="text" readonly
+                                            class="form-control form-control-picker input-group-last-control"
+                                            id="_endDate_saveChecklist"
+                                            data-value$="{{_displayChecklistDate(_response_checklistStructureItems.checklist.endTime)}}"
+                                            value$="{{_displayChecklistDate(_response_checklistStructureItems.checklist.endTime)}}"
+                                            required
+                                            disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                    </template>
+
+
+                                    <template is="dom-if" if="{{!no_endDate}}" restamp>
+                                        <input type="text" class="form-control input-group-last-control" disabled
+                                            value="Not Defined">
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="col-6 my-2">
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <template is="dom-if"
+                                            if="{{!_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}"
+                                            restamp>
+                                            <div class="input-group-first-control input-group-text border-right-0">
+                                                <input on-click="_no_frequency" type="checkbox"
+                                                    checked$="{{!_isEqual(_response_checklistStructureItems.checklist.unit, 'MANUAL')}}">
+                                            </div>
+                                            <label for="_frequency_saveChecklist" class="input-group-text">Frequency
+                                                <span class="text-danger">*</span></label>
+                                        </template>
+
+                                        <template is="dom-if"
+                                            if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}"
+                                            restamp>
+                                            <label for="_frequency_saveChecklist"
+                                                class="input-group-first-control input-group-text">Frequency
+                                                <span class="text-danger">*</span></label>
+                                        </template>
+
+                                    </div>
+
+                                    <template is="dom-if" if="{{no_frequency}}" restamp>
+                                        <input maxlength="100" type="number" min="1" max="99" step="1"
+                                            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                                            id="_frequency_saveChecklist" class="form-control"
+                                            value$="{{_response_checklistStructureItems.checklist.frequency}}" required
+                                            disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+
+                                        <select class="form-control input-group-last-control" id="_unit_saveChecklist"
+                                            disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}"
+                                            required>
+                                            <option selected disabled></option>
+                                            <option value="minute"
+                                                selected$="{{_isEqual(_response_checklistStructureItems.checklist.unit, 'minute')}}">
+                                                Minute(s)</option>
+                                            <option value="hour"
+                                                selected$="{{_isEqual(_response_checklistStructureItems.checklist.unit, 'hour')}}">
+                                                Hour(s)</option>
+                                            <option value="day"
+                                                selected$="{{_isEqual(_response_checklistStructureItems.checklist.unit, 'day')}}">
+                                                Day(s)</option>
+                                            <option value="month"
+                                                selected$="{{_isEqual(_response_checklistStructureItems.checklist.unit, 'month')}}">
+                                                Month(s)</option>
+                                        </select>
+                                    </template>
+
+                                    <template is="dom-if" if="{{!no_frequency}}" restamp>
+                                        <input type="text" class="form-control input-group-last-control" disabled
+                                            value="Not Defined">
+                                    </template>
+                                </div>
+                            </div>
+
+
+                            <div class="col-6 my-2">
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <label for="_workflowLevel1_saveChecklist" class="input-group-text">Assign
+                                            to <span class="text-danger">*</span></label>
+                                    </div>
+                                    <select class="form-control" id="_workflowLevel1_saveChecklist" required
+                                        disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                        <option selected disabled></option>
+
+                                        <template is="dom-if" if="{{_response_getUsers}}">
+                                            <optgroup label="Users">
+                                                <template is="dom-repeat" items="{{_response_getUsers}}">
+                                                    <option value="{{item.user.id}}" data-type="user"
+                                                        selected$="{{_isEqual(_response_checklistStructureItems.approverUsers.0.user.id, item.user.id)}}">
+                                                        {{item.user.userName}}</option>
+                                                </template>
+                                            </optgroup>
+                                        </template>
+
+                                        <template is="dom-if" if="{{_response_getGroups}}">
+                                            <optgroup label="Groups">
+                                                <template is="dom-repeat" items="{{_response_getGroups}}">
+                                                    <option value="{{item.group.id}}" data-type="group"
+                                                        selected$="{{_isEqual(_response_checklistStructureItems.approverGroups.0.group.id, item.group.id)}}">
+                                                        {{item.group.name}}</option>
+                                                </template>
+                                            </optgroup>
+                                        </template>
+
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-6 my-2">
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <label for="_workflowLevel2_saveChecklist" class="input-group-text">1st
+                                            Approval</label>
+                                    </div>
+                                    <select class="form-control" id="_workflowLevel2_saveChecklist"
+                                        disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                        <option selected></option>
+
+                                        <template is="dom-if" if="{{_response_getUsers}}">
+                                            <optgroup label="Users">
+                                                <template is="dom-repeat" items="{{_response_getUsers}}">
+                                                    <option value="{{item.user.id}}" data-type="user"
+                                                        selected$="{{_isEqual(_response_checklistStructureItems.approverUsers.1.user.id, item.user.id)}}">
+                                                        {{item.user.userName}}</option>
+                                                </template>
+                                            </optgroup>
+                                        </template>
+
+                                        <template is="dom-if" if="{{_response_getGroups}}">
+                                            <optgroup label="Groups">
+                                                <template is="dom-repeat" items="{{_response_getGroups}}">
+                                                    <option value="{{item.group.id}}" data-type="group"
+                                                        selected$="{{_isEqual(_response_checklistStructureItems.approverGroups.1.group.id, item.group.id)}}">
+                                                        {{item.group.name}}</option>
+                                                </template>
+                                            </optgroup>
+                                        </template>
+
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-6 my-2">
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <label for="_workflowLevel3_saveChecklist" class="input-group-text">2nd
+                                            Approval</label>
+                                    </div>
+                                    <select class="form-control" id="_workflowLevel3_saveChecklist"
+                                        disabled$="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'ACTIVE')}}">
+                                        <option selected></option>
+
+
+                                        <template is="dom-if" if="{{_response_getUsers}}">
+                                            <optgroup label="Users">
+                                                <template is="dom-repeat" items="{{_response_getUsers}}">
+                                                    <option value="{{item.user.id}}" data-type="user"
+                                                        selected$="{{_isEqual(_response_checklistStructureItems.approverUsers.2.user.id, item.user.id)}}">
+                                                        {{item.user.userName}}</option>
+                                                </template>
+                                            </optgroup>
+                                        </template>
+
+                                        <template is="dom-if" if="{{_response_getGroups}}">
+                                            <optgroup label="Groups">
+                                                <template is="dom-repeat" items="{{_response_getGroups}}">
+                                                    <option value="{{item.group.id}}" data-type="group"
+                                                        selected$="{{_isEqual(_response_checklistStructureItems.approverGroups.2.group.id, item.group.id)}}">
+                                                        {{item.group.name}}</option>
+                                                </template>
+                                            </optgroup>
+                                        </template>
+
+
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+
+                <template is="dom-if" if="{{_response_checklistStructureItems.checklistStructure.length}}" restamp>
+                    <div class="bg-white">
+
+                        <table class="table table-hover m-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th scope="col">Description</th>
+                                    <th scope="col" class="text-center" style="width: 10%;">Input Type</th>
+                                    <th scope="col" class="text-center" style="width: 10%;">UOM</th>
+                                    <th scope="col" class="text-center" style="width: 10%;">Low Limit</th>
+                                    <th scope="col" class="text-center" style="width: 10%;">High limit</th>
+                                    <template is="dom-if"
+                                        if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'PENDING')}}"
+                                        restamp>
+                                        <th scope="col" class="text-center" style="width: 10%;">Actions</th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template is="dom-repeat"
+                                    items="{{_response_checklistStructureItems.checklistStructure}}" as="checklist">
+                                    <tr class="bg-light text-black h6">
+                                        <td colspan="6">
+                                            <i class="fas fa-cogs"></i> Location/Asset: {{checklist.name}}
+                                        </td>
+                                    </tr>
+                                    <template is="dom-repeat" items="{{checklist.structure}}" as="item">
+                                        <tr>
+                                            <td>{{item.description}}</td>
+                                            <td class="text-center">{{_displayInputType(item.fieldType)}}</td>
+                                            <td class="text-center"><template is="dom-if"
+                                                    if="{{_displayNumericCells(item.fieldType)}}">{{item.unitOfMeasure}}</template>
+                                            </td>
+                                            <td class="text-center"><template is="dom-if"
+                                                    if="{{_displayNumericCells(item.fieldType)}}">{{item.lowerLimit}}</template>
+                                            </td>
+                                            <td class="text-center"><template is="dom-if"
+                                                    if="{{_displayNumericCells(item.fieldType)}}">{{item.upperLimit}}</template>
+                                            </td>
+                                            <template is="dom-if"
+                                                if="{{_isEqual(_response_checklistStructureItems.checklist.activationStatus, 'PENDING')}}"
+                                                restamp>
+                                                <td class="text-center">
+                                                    <button on-click="_deleteAsset"
+                                                        class="btn btn-outline-danger btn-sm mt-n1 border-0"
+                                                        title="Delete Asset Parameter"
+                                                        data-field-id$="{{item.checklistFieldId}}"><i
+                                                            class="fas fa-sm fa-trash"></i></button>
+                                                </td>
+                                            </template>
+                                        </tr>
+                                    </template>
+                                </template>
+                            </tbody>
+
+                        </table>
+
+                    </div>
+                </template>
+
+                <template is="dom-if" if="{{!_response_checklistStructureItems.checklistStructure.length}}" restamp>
+                    <p class="text-muted text-center p-5">No asset added!</p>
+                </template>
+            </div>
+        </div>
+
+
+
+
+
+
+        <!-- Modal - addAsset -->
+        <div class="modal" id="_modal_addAsset" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Location/Asset</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_addAsset">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <form id="_form_addAsset">
+                        <div class="modal-body">
+
+                            <div class="form-group">
+                                <label for="_assetTemplate_addAsset" class="text-muted m-0">Select defined
+                                    Location/Asset</label>
+                                <select class="form-control" id="_assetTemplate_addAsset">
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{_response_assetTemplateItems}}">
+                                        <option value$="{{item.id}}">{{_displayLimitedString(item.name)}}</option>
+                                    </template>
+                                </select>
+                            </div>
+
+                        </div>
+
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_addAsset}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_addAsset}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_addAsset">Cancel</button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_addAsset"><i
+                                        class="fas fa-plus mr-1"></i> Add</button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+        <!-- Modal - deleteAsset -->
+        <div class="modal" id="_modal_deleteAsset" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Asset Parameter</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_deleteAsset">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        Are you sure, you want to delete?
+                    </div>
+
+
+                    <div class="modal-footer flex-column align-items-stretch">
+                        <div>
+                            <template is="dom-if" if="{{_status_deleteAsset}}">
+                                <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                    {{_status_deleteAsset}}
+                                </div>
+                            </template>
+                        </div>
+                        <div class="text-right">
+                            <button type="button" class="btn btn-light" data-dismiss="modal"
+                                on-click="_cancel_deleteAsset">Cancel</button>
+                            <button type="submit" class="btn btn-danger" on-click="_confirm_deleteAsset"><i
+                                    class="fas fa-trash mr-1"></i> Delete</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "checklist-builder-detail",
+
+            properties: {
+                itemData: {
+                    observer: '_itemDataChanged'
+                },
+                no_frequency: {
+                    value: true
+                },
+                no_endDate: {
+                    value: true
+                },
+                _onLoading__checklistStructureItems: {
+                    value: false
+                }
+            },
+
+            _itemDataChanged: function (e) {
+                // console.log('_itemDataChanged', e);
+                var _root = this;
+                var _form_saveChecklist = this.querySelector('#_form_saveChecklist');
+                if (_form_saveChecklist) {
+                    _form_saveChecklist.reset();
+                }
+
+                if (_root.itemData) {
+                    _root.$._checklistStructureItems.generateRequest();
+                }
+            },
+
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            ready: function () {
+                var _root = this;
+                if (_root.itemData) {
+                    _root.$._checklistStructureItems.generateRequest();
+                }
+            },
+
+            attached: function () { },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+
+
+            _displayChecklistDate: function (date) {
+                if (!date) {
+                    return moment().format('DD-MM-YYYY hh:mm A');
+                } else {
+                    return moment(date).format('DD-MM-YYYY hh:mm A');
+                }
+            },
+
+            _isEqual: function (str1, str2) {
+                return str1 == str2
+            },
+
+
+
+
+
+
+            _displayInputType: function (str) {
+                if (str === 'number') {
+                    return 'Numeric'
+                } else if (str === 'text') {
+                    return 'Text'
+                } else if (str === 'oknotok') {
+                    return 'Ok/Not-Ok'
+                } else if (str === 'yesno') {
+                    return 'Yes/No'
+                }
+            },
+
+            _displayNumericCells: function (str) {
+                return str === 'number'
+            },
+
+            _displayLimitedString: function (str) {
+                var limit = 65;
+                if (str.length > limit) {
+                    return str.substr(0, limit) + '...';
+                } else {
+                    return str
+                }
+            },
+
+
+
+
+
+
+
+            _addAsset: function (e) {
+                var _root = this;
+                _root.currentChecklistId = e.currentTarget.dataset.checklistId;
+                var _form_addAsset = this.querySelector('#_form_addAsset');
+                _form_addAsset.reset();
+
+                var selects = _form_addAsset.querySelectorAll('select');
+                for (var i = 0; i < selects.length; i++) {
+                    selects[i].selectedIndex = 0;
+                }
+
+                _root.querySelector('#_assetTemplate_addAsset').dispatchEvent(new Event('change'));
+                _root._status_addAsset = null;
+
+                $(_root.$._modal_addAsset).modal({
+                    backdrop: 'static'
+                }).modal('show');
+            },
+            _confirm_addAsset: function (e) {
+                var _root = this;
+                var _form_addAsset = this.querySelector('#_form_addAsset');
+
+                if (_form_addAsset.checkValidity()) {
+                    e.preventDefault();
+
+                    var addAsset = this.querySelector('#addAsset');
+                    var addAssetData = new FormData();
+
+                    var _assetTemplate_addAsset = this.querySelector('#_assetTemplate_addAsset').value;
+
+                    addAssetData = {
+                        "checklistId": _root.currentChecklistId,
+                        "nodeId": _assetTemplate_addAsset
+                    }
+                    // console.log('addAssetData', addAssetData);
+                    addAsset.body = addAssetData;
+
+                    addAsset.generateRequest();
+                }
+            },
+            _onResponse_addAsset: function (e) {
+                var _root = this;
+                // console.log('_onResponse_addAsset', e.detail.response, e.detail.response.error);
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_addAsset = e.detail.response.error;
+                } else {
+                    $(_root.$._modal_addAsset).modal('hide');
+                    _root._refreshParent();
+                }
+            },
+            _close_addAsset: function (e) { },
+            _cancel_addAsset: function (e) { },
+
+
+
+
+
+
+
+            _deleteAsset: function (e) {
+                var _root = this;
+                // console.log('_deleteAsset', e.currentTarget.dataset.fieldId);
+                _root.deleteFieldId = e.currentTarget.dataset.fieldId;
+
+                _root._status_deleteAsset = null;
+
+                $(_root.$._modal_deleteAsset).modal({
+                    backdrop: 'static'
+                }).modal('show');
+            },
+            _confirm_deleteAsset: function () {
+                var _root = this;
+                var deleteAsset = _root.querySelector('#deleteAsset');
+                deleteAsset.url = '/checklist/structure/' + _root.deleteFieldId;
+                deleteAsset.generateRequest();
+            },
+            _onResponse_deleteAsset: function (e) {
+                var _root = this;
+                // console.log('_onResponse_deleteAsset', e.detail.response);
+                // _root._refreshParent();
+
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_deleteAsset = e.detail.response.error;
+                } else {
+                    $(_root.$._modal_deleteAsset).modal('hide');
+                    _root._refreshParent();
+                }
+            },
+            _close_deleteAsset: function (e) { },
+            _cancel_deleteAsset: function (e) { },
+
+
+
+
+
+
+
+            _refreshParent: function () {
+                var _root = this;
+                _root.fire('refresh-list');
+                _root.querySelector('#_checklistStructureItems').generateRequest();
+            },
+
+            _workflowLevel_getValue: function (elm, type) {
+                if (elm.options[elm.selectedIndex].dataset.type === type) {
+                    return elm.value;
+                }
+            },
+
+            _saveChecklist: function (e) {
+                var _root = this;
+                var _form_saveChecklist = _root.querySelector('#_form_saveChecklist');
+
+                if (_form_saveChecklist.checkValidity()) {
+                    e.preventDefault();
+
+                    _root._isFormValid_saveChecklist = true;
+
+                    var saveChecklist = _root.querySelector('#saveChecklist');
+                    var saveChecklistData = new FormData();
+
+                    var _startDate_saveChecklist = moment(moment(_root.querySelector('#_startDate_saveChecklist').value, 'DD-MM-YYYY hh:mm A')).format('x');
+                    var _endDate_saveChecklist = _root.no_endDate ? moment(moment(_root.querySelector('#_endDate_saveChecklist').value, 'DD-MM-YYYY hh:mm A')).format('x') : '10413774000000';
+                    var _frequency_saveChecklist = _root.no_frequency ? _root.querySelector('#_frequency_saveChecklist').value : 0;
+                    var _unit_saveChecklist = _root.no_frequency ? _root.querySelector('#_unit_saveChecklist').value : 'MANUAL';
+
+
+                    saveChecklistData = {
+                        "checklist": {
+                            "checklistId": _root.itemData.id,
+                            "frequency": _frequency_saveChecklist,
+                            "unit": _unit_saveChecklist,
+                            "startTime": _startDate_saveChecklist,
+                            "endTime": _endDate_saveChecklist,
+                        },
+                        "approverGroups": [{
+                            "group": {
+                                "id": parseInt(_root._workflowLevel_getValue(_root.querySelector('#_workflowLevel1_saveChecklist'), 'group')) || ''
+                            },
+                            "workflowLevel": {
+                                "workflowLevelId": 1
+                            }
+                        }, {
+                            "group": {
+                                "id": parseInt(_root._workflowLevel_getValue(_root.querySelector('#_workflowLevel2_saveChecklist'), 'group')) || ''
+                            },
+                            "workflowLevel": {
+                                "workflowLevelId": 2
+                            }
+                        }, {
+                            "group": {
+                                "id": parseInt(_root._workflowLevel_getValue(_root.querySelector('#_workflowLevel3_saveChecklist'), 'group')) || ''
+                            },
+                            "workflowLevel": {
+                                "workflowLevelId": 3
+                            }
+                        }],
+                        "approverUsers": [{
+                            "user": {
+                                "id": _root._workflowLevel_getValue(_root.querySelector('#_workflowLevel1_saveChecklist'), 'user') || ''
+                            },
+                            "workflowLevel": {
+                                "workflowLevelId": 1
+                            }
+                        }, {
+                            "user": {
+                                "id": _root._workflowLevel_getValue(_root.querySelector('#_workflowLevel2_saveChecklist'), 'user') || ''
+                            },
+                            "workflowLevel": {
+                                "workflowLevelId": 2
+                            }
+                        }, {
+                            "user": {
+                                "id": _root._workflowLevel_getValue(_root.querySelector('#_workflowLevel3_saveChecklist'), 'user') || ''
+                            },
+                            "workflowLevel": {
+                                "workflowLevelId": 3
+                            }
+                        }]
+                    }
+                    // console.log('saveChecklistData', saveChecklistData);
+                    saveChecklist.body = saveChecklistData;
+
+                    saveChecklist.generateRequest();
+                } else {
+                    _root._isFormValid_saveChecklist = false;
+                }
+
+            },
+            _onResponse_saveChecklist: function (e) {
+                var _root = this;
+                // console.log('_onResponse_saveChecklist', e);
+                if (_root._isFormValid_saveChecklist && _root._btn_saveChecklistPressed) {
+                    _root.querySelector('#activateChecklist').generateRequest();
+                    _root._btn_saveChecklistPressed = false;
+                } else {
+                    _root._refreshParent();
+                }
+            },
+
+            _activateChecklist: function (e) {
+                e.preventDefault();
+                var _root = this;
+
+                _root._status__activateChecklist = null;
+
+                var _btn_saveChecklist = _root.querySelector('#_btn_saveChecklist');
+                _root._btn_saveChecklistPressed = true;
+                _btn_saveChecklist.click();
+            },
+
+            _onResponse_activateChecklist: function (e) {
+                var _root = this;
+                if (e.detail.response && e.detail.response.error && e.detail.response.error.error) {
+                    _root._status__activateChecklist = e.detail.response.error.error;
+                    return;
+                } else if (e.detail.response && e.detail.response.error) {
+                    _root._status__activateChecklist = e.detail.response.error;
+                    return;
+                } else {
+                    _root._status__activateChecklist = null;
+                }
+                _root._refreshParent();
+            },
+
+            _deactivateChecklist: function (e) {
+                e.preventDefault();
+                var _root = this;
+                _root.querySelector('#deactivateChecklist').generateRequest();
+            },
+
+            _onResponse_deactivateChecklist: function (e) {
+                // console.log('_onResponse_deactivateChecklist', e);
+                var _root = this;
+                _root._refreshParent();
+            },
+
+            _onResponse_checklistStructureItems: function (e) {
+                var _root = this;
+
+                _root._status__activateChecklist = false;
+                var _response = e.detail.response;
+
+
+                if (_response.checklist.endTime == '10413774000000') {
+                    _root.no_endDate = false;
+                } else {
+                    _root.no_endDate = true;
+                }
+
+                if (_response.checklist.unit == "MANUAL") {
+                    _root.no_frequency = false;
+                } else {
+                    _root.no_frequency = true;
+                }
+                _root._enableDateRangePicker();
+
+
+            },
+
+            _enableDateRangePicker: function () {
+                var _root = this;
+
+                var _startDate_saveChecklist = $(_root.querySelector('#_startDate_saveChecklist'));
+                var _endDate_saveChecklist = $(_root.querySelector('#_endDate_saveChecklist'));
+
+                var picker_format = 'DD-MM-YYYY hh:mm A';
+
+                var picker_options = {
+                    singleDatePicker: true,
+                    timePicker: true,
+                    minDate: moment(moment(), picker_format),
+                    showDropdowns: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: picker_format
+                    },
+                    cancelButtonClasses: "btn-light",
+                    applyButtonClasses: "btn-secondary"
+                };
+
+                _startDate_saveChecklist.daterangepicker(picker_options).on('apply.daterangepicker', function (ev, picker) {
+                    var pickerStartDate = picker.startDate.format(picker_format);
+
+                    ev.target.value = pickerStartDate;
+                    _endDate_saveChecklist.data('daterangepicker').minDate = moment(picker.startDate, picker_format);
+                    _endDate_saveChecklist.attr('data-value', pickerStartDate);
+
+                    if (moment(picker.startDate, picker_format).isAfter(moment(_endDate_saveChecklist.val(), picker_format))) {
+                        _endDate_saveChecklist.val(pickerStartDate);
+                        _endDate_saveChecklist.data('daterangepicker').setStartDate(pickerStartDate);
+                        _endDate_saveChecklist.data('daterangepicker').setEndDate(pickerStartDate);
+                    }
+                });
+
+                _endDate_saveChecklist.daterangepicker(picker_options).on('apply.daterangepicker', function (ev, picker) {
+                    var pickerEndDate = picker.startDate.format(picker_format);
+
+                    ev.target.value = pickerEndDate;
+                    if (moment(_startDate_saveChecklist.val(), picker_format).isAfter(moment(picker.startDate, picker_format))) {
+                        _startDate_saveChecklist.val(pickerEndDate);
+                        _startDate_saveChecklist.data('daterangepicker').setStartDate(pickerEndDate);
+                        _startDate_saveChecklist.data('daterangepicker').setEndDate(pickerEndDate);
+                    }
+                });
+            },
+
+            _no_endDate: function (e) {
+                // console.log('_no_endDate', !e.target.checked);
+                var _root = this;
+
+
+                if (!e.target.checked) {
+                    // _endDate_saveChecklist.attr('disabled', true).val('No End Date').data('daterangepicker').remove();
+                    _root.no_endDate = false;
+                } else {
+                    // _endDate_saveChecklist.attr('disabled', false).val(_endDate_saveChecklist.attr('data-value'));
+                    // _root._enableDateRangePicker();
+                    // _endDate_saveChecklist.data('daterangepicker').minDate = _endDate_saveChecklist.attr('data-value');
+                    _root.no_endDate = true;
+
+                    _root.async(function () {
+                        var _endDate_saveChecklist = $(_root.querySelector('#_endDate_saveChecklist'));
+                        var _startDate_saveChecklist = $(_root.querySelector('#_startDate_saveChecklist'));
+
+                        _endDate_saveChecklist.val(_startDate_saveChecklist.attr('data-value'))
+                        _root._enableDateRangePicker();
+                    });
+                }
+            },
+
+            _no_frequency: function (e) {
+                // console.log('_no_frequency', !e.target.checked);
+                var _root = this;
+                if (!e.target.checked) {
+                    _root.no_frequency = false;
+                } else {
+                    _root.no_frequency = true;
+                }
+            }
+        });
+    </script>
+
+</dom-module>

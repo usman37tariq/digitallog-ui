@@ -1,0 +1,38 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script>
+    var loaderObject = [],
+        loaderLoaded = [],
+        loaderErorrs = [];
+    Polymer({
+        is: 'global-loader',
+        properties: {},
+        ready: function () {
+            var host = this;
+            var overlay = document.documentElement;
+            var allNodes = host.queryAllEffectiveChildren('iron-ajax');
+            for (var i = 0; i < allNodes.length; i++) {
+                var nodeItem = allNodes[i];
+                nodeItem.addEventListener('iron-ajax-request', function (e) {
+                    loaderObject.push('r');
+                    overlay.classList.add('in-progress');
+                });
+                nodeItem.addEventListener('iron-ajax-response', function (e) {
+                    loaderLoaded.push('c');
+                    if (loaderObject.length === (loaderLoaded.length + loaderErorrs.length)) {
+                        host.async(function () {
+                            overlay.classList.remove('in-progress');
+                        });
+                    }
+                });
+                nodeItem.addEventListener('iron-ajax-error', function (e) {
+                    loaderErorrs.push('e');
+                    if (loaderObject.length === (loaderLoaded.length + loaderErorrs.length)) {
+                        host.async(function () {
+                            overlay.classList.remove('in-progress');
+                        });
+                    }
+                });
+            }
+        }
+    });
+</script>

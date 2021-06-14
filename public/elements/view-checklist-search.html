@@ -1,0 +1,607 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="view-checklist-search">
+
+    <template>
+
+        <style>
+            ::content .jstree-default .jstree-anchor {
+                line-height: 24px;
+                height: unset !important;
+                position: relative;
+                padding-bottom: 5px;
+            }
+
+            ::content .jstree-default .jstree-anchor:after {
+                content: attr(title);
+                display: block;
+                left: 100%;
+                bottom: 0;
+                margin-left: 5px;
+                font-size: 11px;
+                line-height: 11px;
+                text-align: left;
+                border-radius: 50px;
+                color: currentColor;
+                opacity: .65;
+            }
+
+            .text-break {
+                word-break: break-word !important;
+            }
+
+            .border-left {
+                cursor: pointer;
+                border-top-right-radius: 0px !important;
+                border-bottom-right-radius: 0px !important;
+                border-top-left-radius: .25rem;
+                border-bottom-left-radius: .25rem;
+            }
+
+            .border-right {
+                cursor: pointer;
+                border-top-left-radius: 0px !important;
+                border-bottom-left-radius: 0px !important;
+                border-top-right-radius: .25rem;
+                border-bottom-right-radius: .25rem;
+            }
+
+            #container {
+                width: 100%;
+                height: 90vh;
+            }
+
+            .remarks {
+                margin-top: -25px;
+            }
+
+            td.cmnts {
+                white-space: pre-wrap;
+            }
+
+            td.cmnts:before {
+                content: attr(data-label);
+                float: left;
+                font-size: 16px;
+                width: 100%;
+            }
+
+            /* ::content .jstree-node .jstree-checkbox{
+                display: none !important;
+            }
+
+            ::content .jstree-node.jstree-leaf .jstree-checkbox{
+                display: inline-block !important;
+            }
+
+            ::content .jstree-node.jstree-leaf .jstree-themeicon{
+                display: none !important;
+            } */
+
+            ::content [data-type="0"] .jstree-checkbox,
+            ::content [data-type="1"] .jstree-checkbox,
+            ::content [data-type="2"] .jstree-themeicon {
+                display: none !important;
+            }
+
+            [data-label]::before {
+                content: attr(data-label);
+            }
+        </style>
+        <global-loader>
+            <iron-ajax auto id="_departmentList" url="/department" method="GET"
+                last-response="{{_response_departmentList}}">
+            </iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax id="_departmentSectionsItems" url$="/department/sections/{{selectedDepartment}}" method="GET"
+                last-response="{{_response_departmentSectionsItems}}" loading="{{_loading_departmentSectionsItems}}"
+                on-response="_onResponse_departmentSectionsItems">
+            </iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax auto id="_checklistItems" url="/checklist" method="GET"
+                last-response="{{_response_checklistItems}}">
+            </iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax id="_getchecklistStructureItems" method="GET"
+                last-response="{{_response_checklistStructureItems}}"
+                on-response="_onResponse_getchecklistStructureItems">
+            </iron-ajax>
+        </global-loader>
+
+        <main class="d-flex h-100 ml-lg-3 p-0 pl-lg-5">
+            <aside
+                class="bg-light col-12 col-lg-4 col-xl-3 flex-column left-container overflow-hidden d-flex flex-grow-0">
+
+                <div class="mx-n3 pb-3 pt-3 px-3 w-auto flex-grow-0">
+                    <div class="d-flex">
+                        <div class="flex-grow-1 font-weight-normal h5 m-0 mb-3">Checklist Search</div>
+                    </div>
+                    <form id="checklistDetailForm" onsubmit="return false">
+                        <div class="form-group">
+                            <label for="_checklist_department" class="text-muted m-0">Department</label>
+                            <select required class="form-control" id="_checklist_department"
+                                on-change="_selectedDepartment">
+                                <option disabled selected></option>
+                                <template is="dom-repeat" items="{{_response_departmentList}}">
+                                    <option value="{{item.id}}">{{item.name}}</option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="_checklist_section" class="text-muted m-0">Section</label>
+                            <select required class="form-control" id="_checklist_section" on-change="_selectedSection">
+                                <template is="dom-if" if="{{selectedSection}}" restamp>
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{_response_departmentSectionsItems}}">
+                                        <option value="{{item.sectionId}}">{{item.sectionName}}</option>
+                                    </template>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="_checklist_selected" class="text-muted m-0">Checklist</label>
+                            <select required class="form-control" id="_checklist_selected"
+                                on-change="_checklistSearchReset">
+                                <template is="dom-if" if="{{selectedChecklist}}" restamp>
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{filteredChecklist}}">
+                                        <option value="{{item.id}}">{{item.name}}</option>
+                                    </template>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="_checklist_date" class="text-muted m-0">Date</label>
+                            <div class="btn-group btn-group-toggle   mt-1 btn-block" data-toggle="buttons">
+                                <button class="btn btn-outline-secondary border-right-0 input-group-prepend"
+                                    id="fetchChecklistBackData" on-click="_fetchChecklistBackData" title="Backward">
+                                    <i class="fas fa-arrow-left mt-1"></i>
+                                </button>
+                                <input required id="_checklist_date" type="text" name="datetimes"
+                                    class="form-control rounded-0" />
+                                <button class="btn btn-outline-secondary border-left-0 input-group-prepend"
+                                    id="fetchChecklistForwardData" on-click="_fetchChecklistForwardData"
+                                    title="Forward">
+                                    <i class="fas fa-arrow-right mt-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" id="_fetchChecklistDataLoad" on-click="_fetchChecklistData"
+                            class="btn btn-secondary btn-block">Load</button>
+                    </form>
+                </div>
+            </aside>
+
+
+            <div class="flex-grow-1">
+                <div class="detail d-flex flex-column h-100">
+                    <div class="detail d-flex flex-column h-100">
+                        <div class="flex-grow-0">
+                            <template is="dom-if" if="{{_response_checklistStructureItems.0.checklistStructure.length}}"
+                                restamp>
+                                <div class="p-3 bg-secondary text-light">
+                                    <div class="d-flex">
+                                        <div class="col-12 p-0">
+                                            <div class="h5 text-break"
+                                                title="{{_response_checklistStructureItems.0.checklist.name}}">
+                                                {{_filledDataCheck(_response_checklistStructureItems.0.checklist.name)}}
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <div class="text-break"
+                                                    title="{{_response_checklistStructureItems.0.dataEntryUser.user.userName}}">
+                                                    Filled by:
+                                                    {{_filledDataCheck(_response_checklistStructureItems.0.dataEntryUser.user.userName)}}
+                                                </div>
+                                                <div class="text-break">
+                                                    Timestamp:{{_displayChecklistDate(_response_checklistStructureItems.0.dataEntryUser.statusTimestamp)}}
+                                                </div>
+                                            </div>
+
+                                            <div style="max-height: 100px; overflow-y: auto;">
+                                                <template is="dom-repeat"
+                                                    items="{{_response_checklistStructureItems.0.approvers}}">
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="text-break" title="{{item.user.userName}}">
+                                                            {{_suffix(index)}}:
+                                                            {{_filledDataCheck(item.user.userName)}}
+                                                        </div>
+                                                        <div class="text-break">
+                                                            Timestamp:{{_displayChecklistDate(item.statusTimestamp)}}
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <!-- <div class="d-flex justify-content-between">
+                                                <div class="text-break"
+                                                    title="{{_response_checklistStructureItems.0.firstApprover.user.userName}}">
+                                                    1st Approval:
+                                                    {{_filledDataCheck(_response_checklistStructureItems.0.firstApprover.user.userName)}}
+                                                </div>
+                                                <div class="text-break">
+                                                    Timestamp:{{_displayChecklistDate(_response_checklistStructureItems.0.firstApprover.statusTimestamp)}}
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <div class="text-break"
+                                                    title="{{_response_checklistStructureItems.0.secondApprover.user.userName}}">
+                                                    2nd Approval:
+                                                    {{_filledDataCheck(_response_checklistStructureItems.0.secondApprover.user.userName)}}
+                                                </div>
+                                                <div class="text-break">
+                                                    Timestamp:{{_displayChecklistDate(_response_checklistStructureItems.0.secondApprover.statusTimestamp)}}
+                                                </div>
+                                            </div> -->
+
+                                            <template is="dom-if"
+                                                if="{{_response_checklistStructureItems.0.reasonForSkipping}}" restamp>
+                                                <div class="d-flex justify-content-between">
+                                                    <div class="text-break">
+                                                        Reason for skipping:
+                                                        {{_response_checklistStructureItems.0.reasonForSkipping}}
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template is="dom-if" if="{{_response_checklistStructureItems.0.remarks}}"
+                                                restamp>
+                                                <div class="d-flex justify-content-between">
+                                                    <div class="text-break">
+                                                        Remarks:{{_response_checklistStructureItems.0.remarks}}</div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                        </div>
+
+
+                        <div class="flex-grow-1 overflow-auto">
+
+                            <template is="dom-if" if="{{_response_checklistStructureItems.length}}" restamp>
+                                <div class="bg-white">
+
+                                    <table class="table table-hover m-0">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th scope="col" style="width: 50%;">Description</th>
+                                                <th scope="col" class="text-center" style="width: 10%;">Value</th>
+                                                <th scope="col" class="text-center" style="width: 10%;">UOM</th>
+                                                <th scope="col" class="text-center" style="width: 10%;">Low Limit</th>
+                                                <th scope="col" class="text-center" style="width: 10%;">High limit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template is="dom-repeat" items="{{_response_checklistStructureItems}}"
+                                                as="list">
+                                                <template is="dom-repeat" items="{{list.checklistStructure}}"
+                                                    as="checklist">
+                                                    <tr class="bg-light text-black h6">
+                                                        <td colspan="5">
+                                                            <i class="fas fa-cogs"></i> Location/Asset:
+                                                            {{checklist.name}}
+                                                        </td>
+                                                    </tr>
+                                                    <template is="dom-repeat" items="{{checklist.structure}}" as="item">
+                                                        <tr>
+                                                            <td>{{item.description}}</td>
+                                                            <td class="text-center">
+                                                                <!-- <template is="dom-if"
+                                                                    if="{{item.value}}">{{item.value}}</template> -->
+
+                                                                <template is="dom-if"
+                                                                    if="{{_isEqual(item.fieldType, 'number')}}" restamp>
+                                                                    {{item.value}}
+                                                                </template>
+
+                                                                <template is="dom-if"
+                                                                    if="{{_isEqual(item.fieldType, 'text')}}" restamp>
+                                                                    {{item.value}}
+                                                                </template>
+
+                                                                <template is="dom-if"
+                                                                    if="{{_isEqual(item.fieldType, 'yesno')}}" restamp>
+                                                                    <template is="dom-if"
+                                                                        if="{{_isEqual(item.value, 1)}}" restamp>
+                                                                        Yes
+                                                                    </template>
+
+                                                                    <template is="dom-if"
+                                                                        if="{{_isEqual(item.value, 0)}}" restamp>
+                                                                        No
+                                                                    </template>
+                                                                </template>
+
+                                                                <template is="dom-if"
+                                                                    if="{{_isEqual(item.fieldType, 'oknotok')}}"
+                                                                    restamp>
+                                                                    <template is="dom-if"
+                                                                        if="{{_isEqual(item.value, 1)}}" restamp>
+                                                                        Ok
+                                                                    </template>
+
+                                                                    <template is="dom-if"
+                                                                        if="{{_isEqual(item.value, 0)}}" restamp>
+                                                                        Not-Ok
+                                                                    </template>
+                                                                </template>
+                                                            </td>
+                                                            <td class="text-center"><template is="dom-if"
+                                                                    if="{{_displayNumericCells(item.fieldType)}}">{{item.unitOfMeasure}}</template>
+                                                            </td>
+                                                            <td class="text-center"><template is="dom-if"
+                                                                    if="{{_displayNumericCells(item.fieldType)}}">{{item.lowerLimit}}</template>
+                                                            </td>
+                                                            <td class="text-center"><template is="dom-if"
+                                                                    if="{{_displayNumericCells(item.fieldType)}}">{{item.upperLimit}}</template>
+                                                            </td>
+
+                                                        </tr>
+                                                        <template is="dom-if" if="{{item.remarks}}" restamp>
+                                                            <tr class="alert-warning font-italic text-muted">
+                                                                <td colspan="6" class="cmnts" title="Comments"
+                                                                    data-label="Comments:">{{item.remarks}}
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </template>
+                                            </template>
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+                            </template>
+
+                            <template is="dom-if"
+                                if="{{!_response_checklistStructureItems.0.checklistStructure.length}}" restamp>
+                                <p class="text-muted text-center text-uppercase p-5">No Records Found</p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "view-checklist-search",
+
+
+
+
+            properties: {
+                filteredChecklist: {
+                    type: Array,
+                    value: []
+                },
+            },
+
+
+
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            attached: function () {
+                var _root = this;
+                // _root.firstTimeLoadCheck = true;
+                var _daterangepicker = $(_root.querySelector('input[name="datetimes"]')).daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    maxDate: moment(),
+                    startDate: moment().format('DD-MM-YYYY hh:mm A'),
+                    maxYear: parseInt(moment().format('YYYY'), 10),
+                    autoApply: true,
+                    locale: {
+                        format: 'DD-MM-YYYY hh:mm A'
+                    }
+                }, function (start) {
+                    _root._checklistSearchReset();
+                    // console.log('New date range selected: ' + start.format('YYYY-MM-DD'));
+                });
+                _root.firstTimeCheck = true;
+                // _root.$$('#fetchChecklistBackData').disabled = true;
+                // _root.$$('#fetchChecklistForwardData').disabled = true;
+            },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+
+            _isEqual: function (str1, str2) {
+                return str1 === str2;
+            },
+
+            ready: function () {
+                var _root = this;
+
+            },
+
+            _index: function (index) {
+                return index + 1
+            },
+
+            _suffix: function (n) {
+
+                _n = this._index(n);
+                n = _n % 10;
+                return _n + (n > 3 ? 'th' : ['th', 'st', 'nd', 'rd'][n]) + ' Approval';
+            },
+
+            _selectedDepartment: function (e) {
+                var _root = this;
+
+                _root.selectedDepartment = e.currentTarget.value;
+                _root.selectedSection = false;
+
+                if (_root.selectedDepartment !== '') {
+                    var _departmentSectionsItems = _root.querySelector('#_departmentSectionsItems');
+                    _departmentSectionsItems.generateRequest();
+                    _root.selectedChecklist = false;
+                    _root._checklistSearchReset();
+                } else {
+                    _roots.selectedDepartment = false;
+                }
+            },
+
+            _selectedSection: function (e) {
+                var _root = this;
+
+                _root.filteredChecklist = [];
+                var list = [];
+                var checklist = _root._response_checklistItems;
+                var department = document.querySelector('#_checklist_department').value;
+                var section = document.querySelector('#_checklist_section').value;
+                for (var i = 0; i < checklist.length; i++) {
+                    if ((checklist[i].section.sectionId === Number(section)) && (checklist[i].section.department.id === Number(department))) {
+                        list.push(checklist[i]);
+                    }
+                }
+                _root.selectedChecklist = true;
+                _root.filteredChecklist = list;
+                _root._checklistSearchReset();
+            },
+
+            _fetchChecklistData: function (e) {
+                var _root = this;
+                var direction = 0;
+                if (_root.$$('#checklistDetailForm').checkValidity()) {
+                    var checklist = document.querySelector('#_checklist_selected').value;
+                    var rangeSelectorValue = document.querySelector('#_checklist_date').value;
+                    var date = moment(moment(rangeSelectorValue, 'DD-MM-YYYY hh:mm A')).format('x');
+                    if (checklist) {
+                        _root.$._getchecklistStructureItems.url = '/getChecklistData/' + checklist + '/' + date + '/' + direction + '/null';
+                        _root.$._getchecklistStructureItems.generateRequest();
+                    }
+                    _root.firstTimeCheck = true;
+                }
+
+            },
+
+            _fetchChecklistBackData: function (e) {
+                var _root = this;
+                var direction = -1;
+                if (!e.currentTarget.disabled)
+                    if (_root.$$('#checklistDetailForm').checkValidity()) {
+                        var checklist = document.querySelector('#_checklist_selected').value;
+                        var date = _root.statusTimestamp;
+                        if (checklist) {
+                            _root.$._getchecklistStructureItems.url = '/getChecklistData/' + checklist + '/' + date + '/' + direction + '/' + _root.checklistScheduleId;
+                            _root.$._getchecklistStructureItems.generateRequest();
+                        }
+                    }
+            },
+
+            _fetchChecklistForwardData: function (e) {
+                var _root = this;
+                var direction = 1;
+                if (!e.currentTarget.disabled)
+                    if (_root.$$('#checklistDetailForm').checkValidity()) {
+                        var checklist = document.querySelector('#_checklist_selected').value;
+                        var date = _root.statusTimestamp;
+                        if (checklist) {
+                            _root.$._getchecklistStructureItems.url = '/getChecklistData/' + checklist + '/' + date + '/' + direction + '/' + _root.checklistScheduleId;
+                            _root.$._getchecklistStructureItems.generateRequest();
+                        }
+                    }
+            },
+
+            _displayInputType: function (str) {
+                if (str === 'number') {
+                    return 'Numeric'
+                } else if (str === 'text') {
+                    return 'Text'
+                } else if (str === 'oknotok') {
+                    return 'Ok/Not-Ok'
+                } else if (str === 'yesno') {
+                    return 'Yes/No'
+                }
+            },
+
+            _displayNumericCells: function (str) {
+                return str === 'number'
+            },
+
+            _displayChecklistDate: function (date) {
+                if (date) {
+                    return moment(date).format('DD-MM-YYYY hh:mm:ss A');
+                }
+                else {
+                    return 'N/A';
+                }
+            },
+
+            _filledDataCheck: function (data) {
+                return data ? data : 'N/A';
+            },
+
+            _onResponse_getchecklistStructureItems: function (e) {
+                var _root = this;
+                // if (e.detail.response.length < 1) {
+                //     if (!_root.firstTimeCheck) {
+                //         _root.$$('#fetchChecklistBackData').disabled = true
+                //         _root.$$('#fetchChecklistForwardData').disabled = true;
+                //     }
+                // }
+                if (e.detail.response[0]) {
+                    _root.$$('#fetchChecklistBackData').disabled = !e.detail.response[0].hasPrevious;
+                    _root.$$('#fetchChecklistForwardData').disabled = !e.detail.response[0].hasNext;
+                }
+
+
+                _root.statusTimestamp = moment().utc().format('x');
+                var timeStamp = moment().format('DD-MM-YYYY hh:mm A');
+                var result = e.detail.response;
+
+                _root.checklistScheduleId = (result[0] && result[0].checklistSchedule.checklistScheduleId) ? result[0].checklistSchedule.checklistScheduleId : "null";
+
+                if (result[0] && result[0].dataEntryUser) {
+                    _root.statusTimestamp = result[0].dataEntryUser.statusTimestamp;
+                    timeStamp = moment(moment(result[0].dataEntryUser.statusTimestamp, 'x')).format('DD-MM-YYYY hh:mm A');
+                }
+
+                $('#_checklist_date').data('daterangepicker').setStartDate(timeStamp);
+                $('#_checklist_date').data('daterangepicker').setEndDate(timeStamp);
+                _root.firstTimeCheck = false;
+
+                /* if (e.detail.url.split('/').pop() == -1 && e.detail.response.length === 0) {
+                    console.log('no backward', e.detail.url.split('/').pop(), e.detail.response.length, timeStamp);
+                    _root.$$('#fetchChecklistBackData').disabled = true;
+                } else {
+                    _root.$$('#fetchChecklistBackData').disabled = false;
+                }
+
+                if (e.detail.url.split('/').pop() == 1 || e.detail.url.split('/').pop() == 0 && e.detail.response.length === 0) {
+                    console.log('no forward', e.detail.url.split('/').pop(), e.detail.response.length, timeStamp);
+                    _root.$$('#fetchChecklistForwardData').disabled = true;
+                } else {
+                    _root.$$('#fetchChecklistForwardData').disabled = false;
+                } */
+            },
+
+            _onResponse_departmentSectionsItems: function () {
+                var _root = this;
+                _root.selectedSection = true;
+            },
+
+            _checklistSearchReset: function () {
+                var _root = this;
+                _root.$$('#fetchChecklistBackData').disabled = false
+                _root.$$('#fetchChecklistForwardData').disabled = false;
+                _root.firstTimeCheck = true;
+            }
+
+        });
+    </script>
+
+</dom-module>

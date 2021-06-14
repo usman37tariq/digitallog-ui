@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100 in-progress">
+
+<head>
+    <title></title>
+
+    <base href="/">
+    <meta charset="utf-8">
+
+    <link rel="shortcut icon"
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTM4IDc5LjE1OTgyNCwgMjAxNi8wOS8xNC0wMTowOTowMSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTcgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjlENzc2OEZERDhFMjExRTc4QjZDQTZDRDczNTQ4NTYxIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjlENzc2OEZFRDhFMjExRTc4QjZDQTZDRDczNTQ4NTYxIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6OUQ3NzY4RkJEOEUyMTFFNzhCNkNBNkNENzM1NDg1NjEiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6OUQ3NzY4RkNEOEUyMTFFNzhCNkNBNkNENzM1NDg1NjEiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz5QdStYAAAERElEQVR42uxXS2wbRRie2bW9jp+JSRojkro1TVzXVR4qJQKaVBy4UTghgUQFSJSC4MBLICEOSBy4VKKXcgBuCNED4tJDOUAPjVQRIUEDsfNo2sQmxHGcOg+/d70zfGN2IaE1touhHLrSp3l4Zr5v/v+f+ceUc05u5yeR2/zdEXBHgMWsUEqbmnhu5tQwioeBBw0kgOPH9r95pZl1qHkMGxEA0iMongQeA3pvMqQIvAWcgRDeEgEgbUdxAnge6Df7K0zTNtT01fVyOqvzCu3zDg7J1GJa9FvgOYj45ZYFgLjb2M1JwCn68pWtdLKwuLheWvVVuBYU0/50obQS8g4XO5Rde42uTeBFiDjblAAQO1C8DbwhiBnX2a/5az+D2I2dBrdPxtSyzmjKIvPdZl+7reuHUPvwkERlM8A/A16BkK26AkA+gqpQvEdl5cLCVjSWKa/2gcprEKpqhc5qGq3orBoDndWjRMm0s431SBJx/96WE5GOEZvL6vUbPAvAUxAxUU+Ao8TIB/GtyYcy5eUwuoU1iKrRmbJGVcZIBE25hjVzdoUnFCs/YLQ1vyMQ3esODxmeqgDvAKe2B+gOAScunjkuBlhJuuxml7BdlgZ5D/p2NXqsYPjLsEYYyymibZOU6YO+B3oUuc1tDPkaeAYiVncIeGH8I0FyXudscK6UmUypG3tGpblkG1Ejt3C/pB12nrVauBEzNAtLLMEiYeP3JPA0RFz4Q4D7tTFJluWTnoH+ZyWf5/7qNMLJEWn+spcUhhph5YSuFYl1Oc+V0gZxWLPyXdqAw+enVPEwonglajs74FZf77XrJQxnIjC3CziH4lFRd/YHJu29/oGqZ7DsqHRl0kOKgzfhZEViiy3xDg3YlyeK+4arlkoLh513O92yzXTjFPDEJ2Mvz+xwAQSI83seCIk2BMQgZL8IagkiHpGi81ai7zMWKaxwbyzK7wljx84bZfEV3FNpVtbKrFTWEcVSl2qJjwzfdxG/ZqvGIuRziKjsCELXq6NdqF4ADlZF7IaIvkA1qj2ktDYmzXqzxD49wYLBErG6TMszVZvRMps5NXW9U9vIBnhFr5XkvhI3au70+HrNi8gQcQmo7tYVufdHxd8pEg/xkXwqQ5zdxi20VlpOx4uLyyHs0lUnPHRgTVgO+Al4CSKSNa9iiAig+A7wiyPsGz00R60WMw/kionkfPHq0iBn7K8JRNz9E4af5wHh5wTI0k3nAog4arhDsnhcKe/hSDdMu7D5/VSHXii1mznJSDxfAt+AaLHZ8/q32RAi3kfxbjUGDh2Yyk7OhiDCiuZ14DTwKUhX/smDpJ4AO4oYYGY4BnwIvAfiXCteRHXfAxAh3gIfAyJyHwfx+H/9JvwCEGY+2mryhp9ksEIE5NF6iwUDgYaJr8Xj1fFNvQkbJTcXr0X6rz7LBcn2sl6/pdUCmnHD/+uPSatd0Kg1fhNgADtd8Ll3fgo8AAAAAElFTkSuQmCC"
+        type="image/x-icon" />
+
+    <meta name="viewport"
+        content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height">
+
+    <script>
+        window.user_id = '___user_id___' || '';
+        window.user_data = ___user_data___ || '';
+        window.organization_id = '___organization_id___' || '';
+    </script>
+
+
+    <style>
+        .in-progress:before {
+            content: '';
+            display: block;
+            background-color: rgba(0, 0, 0, .5);
+            height: 100%;
+            width: 100%;
+            left: 0;
+            top: 0;
+            text-align: center;
+            position: fixed;
+            z-index: 1060;
+        }
+
+        .in-progress:after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 40px;
+            font-size: 2px;
+            text-indent: -9999em;
+            border-top: 1em solid #f5f5f5;
+            border-right: 1em solid #f5f5f5;
+            border-bottom: 1em solid #f5f5f5;
+            border-left: 1em solid #6fb444;
+            border-radius: 50%;
+            position: fixed;
+            left: calc(50% - 20px);
+            top: calc(50% - 20px);
+            z-index: 1060 !important;
+            -webkit-animation: spinner-animation 1.1s infinite linear;
+            -moz-animation: spinner-animation 1.1s infinite linear;
+            -ms-animation: spinner-animation 1.1s infinite linear;
+            -o-animation: spinner-animation 1.1s infinite linear;
+            animation: spinner-animation 1.1s infinite linear;
+        }
+
+        @-webkit-keyframes spinner-animation {
+            0% {
+                transform: rotate(0)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+
+        @-moz-keyframes spinner-animation {
+            0% {
+                transform: rotate(0)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+
+        @-ms-keyframes spinner-animation {
+            0% {
+                transform: rotate(0)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+
+        @-o-keyframes spinner-animation {
+            0% {
+                transform: rotate(0)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes spinner-animation {
+            0% {
+                transform: rotate(0)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+
+
+        textarea {
+            min-height: 55px !important;
+        }
+    </style>
+
+    <link href="../public/bower_components/jquery-ui/themes/base/jquery-ui.min.css" rel="stylesheet">
+    <link href="../public/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../public/bower_components/fontawesome/css/all.min.css" rel="stylesheet">
+    <link href="../public/bower_components/jstree/dist/themes/default/style.min.css" rel="stylesheet" />
+    <!-- <link href="../public/highcharts/daterangepicker.css" rel="stylesheet" /> -->
+    <link href="../public/bower_components/daterangepicker/daterangepicker.css" rel="stylesheet" />
+    <link href="../public/bower_components/select2/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="../public/bower_components/offline/themes/offline-theme-default.css" rel="stylesheet" />
+    <link href="../public/bower_components/offline/themes/offline-language-english.css" rel="stylesheet" />
+
+    
+    <link href="../public/bower_components/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" />
+    <link href="../public/bower_components/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" />
+
+    <link href="../public/elements/app.css" rel="stylesheet" />
+
+
+
+    <script src="../public/bower_components/webcomponentsjs/webcomponents.min.js"></script>
+
+    <script src="../public/bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="../public/bower_components/jquery-ui/jquery-ui.min.js"></script>
+
+    <script src="../public/bower_components/jstree/dist/jstree.min.js"></script>
+
+    <script src="../public/bower_components/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="../public/bower_components/moment/min/moment.min.js"></script>
+
+    <script src="../public/bower_components/highcharts/highstock.js"></script>
+    <script src="../public/bower_components/highcharts/highcharts-more.js"></script>
+    <script src="../public/bower_components/highcharts/modules/data.js"></script>
+    <script src="../public/bower_components/highcharts/modules/boost.js"></script>
+    <script src="../public/bower_components/highcharts/modules/exporting.js"></script>
+    <script src="../public/bower_components/highcharts/modules/offline-exporting.js"></script>
+    <script src="../public/bower_components/highcharts/modules/export-data.js"></script>
+
+    <script src="../public/bower_components/highcharts/modules/bullet.js"></script>
+    <script src="../public/bower_components/highcharts/modules/solid-gauge.js"></script>
+
+    <script src="../public/bower_components/daterangepicker/daterangepicker.js"></script>
+
+    <script src="../public/bower_components/select2/dist/js/select2.full.min.js"></script>
+
+    <script src="../public/bower_components/offline/offline.min.js"></script>
+
+    <script src="../public/bower_components/datatables.net/js/jquery.dataTables.min.js"></script>
+    
+
+    <script src="../public/bower_components/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+    <script src="../public/bower_components/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+
+    <script src="../public/bower_components/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script>
+
+    <script src="../public/bower_components/lodash/dist/lodash.min.js"></script>
+
+    <link rel="import" href="../public/elements/app-shell.html">
+
+</head>
+
+<body class="h-100 p-0">
+
+    <script type="text/javascript">
+        Offline.options = {
+            checkOnLoad: false,
+            interceptRequests: true,
+            reconnect: {
+                initialDelay: 3,
+                delay: 10
+            },
+            requests: true
+        };
+    </script>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-97985973-7"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-97985973-7');
+    </script>
+
+    <script>var app_time = new Date; document.addEventListener("mouseup", function (e) {// console.log('mouseup', e)
+            // console.clear();
+            var click_time = new Date,
+                time_duration = Math.round((click_time - app_time) / 1e3),
+                t = e.target, label = "";
+
+            if (t.classList) {
+                // console.log('classList', t.classList.value);
+                label = label + "|class>" + t.classList.value
+            } if (t.id) {
+                // console.log('id', t.id);
+                label = label + "|id>" + t.id
+            } if (t.href) {
+                // console.log('href', t.href);
+                label = label + "|href>" + t.href
+            }
+
+            gtag("event", window.user_id + ">click", { event_category: location.hash, event_label: label, value: time_duration + "s" })
+        });</script>
+
+    <app-shell></app-shell>
+
+</body>
+
+</html>

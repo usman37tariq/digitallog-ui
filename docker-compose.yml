@@ -1,0 +1,13 @@
+version: '2'
+services:
+ frontend:
+  container_name: digital-logs-frontend
+  image: digitallog-ui
+  restart: always
+  network_mode: Mynetwork
+  ports:
+   - "5005:5005"
+
+
+
+

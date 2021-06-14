@@ -1,0 +1,891 @@
+<link rel="import" href="../bower_components/polymer/polymer.html" />
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html" />
+
+<dom-module id="view-asset-parameters-builder">
+    <template>
+        <style>
+            /* ::content .jstree .jstree-themeicon {
+                display: none !important;
+            } */
+            .alert-danger {
+                word-wrap: break-word;
+                max-height: 300px;
+                overflow: auto;
+            }
+
+            ::content .jstree-default .jstree-anchor {
+                line-height: 24px;
+                height: unset !important;
+                position: relative;
+                padding-bottom: 5px;
+            }
+
+            ::content .jstree-default .jstree-anchor:after {
+                content: attr(title);
+                display: block;
+                left: 100%;
+                bottom: 0;
+                margin-left: 5px;
+                font-size: 11px;
+                line-height: 11px;
+                text-align: left;
+                border-radius: 50px;
+                color: currentColor;
+                opacity: 0.65;
+            }
+
+            /* ::content li.jstree-open{
+                border: 1px solid blue;
+            }
+
+            ::content li.jstree-closed {
+                border: 1px solid green;
+            }
+
+            ::content li.jstree-leaf {
+                border: 1px solid red;
+            } */
+
+            ::content .right-container {
+                background: #f8f9fa;
+                background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            }
+
+            .text-break {
+                word-break: break-word !important;
+            }
+        </style>
+
+        <global-loader>
+            <iron-ajax auto id="getHierarchy" url="/hierarchy" method="GET" last-response="{{hierarchyItems}}"
+                on-response="_onResponse_hierarchy" loading="{{hierarchyItemsLoading}}">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax auto id="getTemplateItems" url="/template" method="GET" last-response="{{templateItems}}">
+            </iron-ajax>
+        </global-loader>
+
+        <template is="dom-if" if="{{selectedNodeData.id}}">
+            <global-loader>
+                <iron-ajax auto id="getAssetTemplateItems" url="/assettemplate/{{selectedNodeData.id}}" method="GET"
+                    last-response="{{assetTemplateItems}}" on-response="_onResponse_assetTemplateItems">
+                </iron-ajax>
+            </global-loader>
+        </template>
+
+        <global-loader>
+            <iron-ajax id="assignAssetTemplate" url="/assettemplate/template" method="POST"
+                content-type="application/json" on-response="_onResponse_assignAssetTemplate">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="addAssettemplate" method="POST" url="/assettemplate" content-type="application/json"
+                on-response="_onResponse_addAssettemplate">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="addParameter" method="POST" url="/template/structure" content-type="application/json"
+                on-response="_onResponse_addParameter">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="editParameter" method="PUT" url="/template/structure" content-type="application/json"
+                on-response="_onResponse_editParameter">
+            </iron-ajax>
+        </global-loader>
+
+        <global-loader>
+            <iron-ajax id="deleteParameter" method="DELETE" url="/template/structure"
+                on-response="_onResponse_deleteParameter">
+            </iron-ajax>
+        </global-loader>
+
+        <main class="d-flex h-100 ml-lg-3 p-0 pl-lg-5">
+            <aside
+                class="bg-light border-right col-12 col-lg-4 col-xl-3 flex-column left-container overflow-hidden d-flex flex-grow-0">
+                <div class="border-bottom mx-n3 pb-3 pt-3 px-3 w-auto flex-grow-0">
+                    <div class="d-flex">
+                        <div class="flex-grow-1 font-weight-normal h5 m-0">
+                            Parameter Builder
+                        </div>
+                        <!-- <div class="flex-grow-0 my-n1">
+                                <button class="btn btn-sm" onclick="$('#jstree').jstree('close_all');"
+                                    title="Collapse All"><i class="fas fa-angle-double-up"></i></button>
+                                <button class="btn btn-sm" onclick="$('#jstree').jstree('open_all');" title="Expand All"><i
+                                        class="fas fa-angle-double-down"></i></button>
+                            </div> -->
+                    </div>
+                    <div class="input-group  mt-3">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text" for="jstreeSearch"><i class="fas fa-search"></i></label>
+                        </div>
+                        <input maxlength="100" type="search" id="jstreeSearch" class="form-control"
+                            placeholder="Type a keyword to filter" />
+                    </div>
+                </div>
+
+                <div class="d-flex flex-grow-1 h-100 overflow-auto mx-n3 position-relative">
+                    <template is="dom-if" if="{{!hierarchyItemsLoading}}" restamp>
+                        <div id="jstree" class="h-100 w-100 overflow-auto pl-2"></div>
+                    </template>
+
+                    <template is="dom-if" if="{{notFound}}" restamp>
+                        <div class="bg-light h-100 w-100 p-3 position-absolute text-center text-muted w-100">
+                            No item matched your criteria
+                        </div>
+                    </template>
+                </div>
+            </aside>
+
+            <template is="dom-if" if="{{selectedNodeData}}" restamp>
+                <div class="flex-grow-1">
+                    <div class="detail d-flex flex-column h-100">
+                        <div class="flex-grow-0">
+                            <div class="p-3 bg-secondary text-light">
+                                <div class="d-flex">
+                                    <div class="col-6 p-0">
+                                        <div class="h5 text-break">{{selectedNodeData.text}}</div>
+                                        <div class="text-break">
+                                            Description: {{selectedNodeData.description}}
+                                        </div>
+                                    </div>
+                                    <div class="align-items-baseline col-6 item-actions justify-content-end p-0">
+                                        <template is="dom-if" if="{{_checkAssetTemplateItems(assetTemplateItems)}}"
+                                            restamp>
+                                            <div class="text-right">
+                                                <button class="btn btn-light btn-sm" on-click="_addParameter">
+                                                    <i class="fas fa-plus mr-1"></i> Add Parameters
+                                                </button>
+                                            </div>
+
+                                            <div class="input-group input-group-sm mt-3">
+                                                <div class="input-group-prepend">
+                                                    <label for="selectTemplate" class="input-group-text">Import
+                                                        template:</label>
+                                                </div>
+                                                <select class="form-control float-right" id="selectTemplate">
+                                                    <option></option>
+                                                    <template is="dom-repeat" items="{{templateItems}}">
+                                                        <option value$="{{item.id}}">{{item.name}}</option>
+                                                    </template>
+                                                </select>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-dark" on-click="_importTemplateParameters">
+                                                        Import
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="{{!_checkAssetTemplateItems(assetTemplateItems)}}"
+                                            restamp>
+                                            <div class="flex-grow-0 text-right">
+                                                <button class="btn btn-light btn-sm" on-click="_createParameters">
+                                                    <i class="fas fa-plus mr-1"></i> Create parameters
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex-grow-1 overflow-auto">
+                            <template is="dom-if" if="{{assetTemplateItems.templateStructures.length}}" restamp>
+                                <div class="bg-white">
+                                    <table class="table table-hover m-0">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <!-- <th scope="col">#</th> -->
+                                                <th scope="col" style="width: 50%;">Description</th>
+                                                <th scope="col" class="text-center" style="width: 10%;">
+                                                    Input Type
+                                                </th>
+                                                <th scope="col" class="text-center" style="width: 10%;">
+                                                    UOM
+                                                </th>
+                                                <th scope="col" class="text-center" style="width: 10%;">
+                                                    Low Limit
+                                                </th>
+                                                <th scope="col" class="text-center" style="width: 10%;">
+                                                    High limit
+                                                </th>
+                                                <th scope="col" class="text-center" style="width: 10%;">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template is="dom-repeat" items="{{assetTemplateItems.templateStructures}}">
+                                                <tr>
+                                                    <!-- <th scope="row">{{item.fieldId}}</th> -->
+                                                    <td>{{item.description}}</td>
+                                                    <td class="text-center">
+                                                        {{_displayInputType(item.fieldType)}}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <template is="dom-if"
+                                                            if="{{_displayNumericCells(item.fieldType)}}">{{item.unitOfMeasure}}</template>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <template is="dom-if"
+                                                            if="{{_displayNumericCells(item.fieldType)}}">{{item.lowerLimit}}</template>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <template is="dom-if"
+                                                            if="{{_displayNumericCells(item.fieldType)}}">{{item.upperLimit}}</template>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button on-click="_editParameter"
+                                                            class="btn btn-outline-dark btn-sm mt-n1 border-0"
+                                                            title="Edit Parameter" data-field-id$="{{item.fieldId}}">
+                                                            <i class="fas fa-sm fa-pen"></i>
+                                                        </button>
+
+                                                        <button on-click="_deleteParameter"
+                                                            class="btn btn-outline-danger btn-sm mt-n1 border-0"
+                                                            title="Delete Parameter" data-field-id$="{{item.fieldId}}">
+                                                            <i class="fas fa-sm fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </template>
+
+                            <template is="dom-if" if="{{!assetTemplateItems.templateStructures.length}}" restamp>
+                                <p class="text-muted text-center p-5">No parameter added!</p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template is="dom-if" if="{{!selectedNodeData}}" restamp>
+                <section class="align-items-center bg-white col-12 col-lg-9 d-flex p-3 right-container text-center">
+                    <p class="flex-grow-1 m-0 text-muted">Please select an item</p>
+                </section>
+            </template>
+        </main>
+
+        <!-- Modal - addParameter -->
+        <div class="modal" id="_modal_addParameter" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Parameter</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_addParameter">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <form id="_form_addParameter">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="_description_addParameter" class="text-muted m-0">Description <span
+                                        class="text-danger">*</span></label>
+                                <textarea maxlength="400" class="form-control" id="_description_addParameter"
+                                    rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="_inputType_addParameter" class="text-muted m-0">Input Type <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_inputType_addParameter"
+                                    on-change="_displayNumericOptions">
+                                    <option value="number">Numeric </option>
+                                    <option value="text">Text</option>
+                                    <option value="oknotok">Ok/Not-Ok </option>
+                                    <option value="yesno">Yes/No </option>
+                                </select>
+                            </div>
+
+                            <template is="dom-if" if="{{displayNumericOptions}}">
+                                <div class="form-group">
+                                    <label for="_uom_addParameter" class="text-muted m-0">UOM</label>
+                                    <input maxlength="100" type="text" class="form-control" id="_uom_addParameter" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="_lowerLimit_addParameter" class="text-muted m-0">Low Limit</label>
+                                    <input type="text" maxlength="17" class="form-control" id="_lowerLimit_addParameter"
+                                        value="{{_query::input}}" title="Enter Number"
+                                        oninput="this.value = this.value.replace(/[^0-9.\-]/g, '').replace(/(\..*)\./g, '$1').replace(/(?!^)-/g, '');" />
+
+
+                                </div>
+                                <div class="form-group">
+                                    <label for="_higherLimit_addParameter" class="text-muted m-0">High limit</label>
+                                    <input maxlength="17" type="text" class="form-control"
+                                        id="_higherLimit_addParameter" value="" title="Enter Number"
+                                        oninput="this.value = this.value.replace(/[^0-9.\-]/g, '').replace(/(\..*)\./g, '$1').replace(/(?!^)-/g, '');" />
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_addParameter}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_addParameter}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_addParameter">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_addParameter">
+                                    <i class="fas fa-plus mr-1"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal - editParameter -->
+        <div class="modal" id="_modal_editParameter" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Parameter</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_editParameter">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <form id="_form_editParameter">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="_description_editParameter" class="text-muted m-0">Description <span
+                                        class="text-danger">*</span></label>
+                                <textarea maxlength="400" class="form-control" id="_description_editParameter" rows="2"
+                                    value="{{selectedParameter.description}}"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="_inputType_editParameter" class="text-muted m-0">Input Type <span
+                                        class="text-danger">*</span></label>
+
+                                <select class="form-control" id="_inputType_editParameter"
+                                    on-change="_displayNumericOptions">
+                                    <option value="number"
+                                        selected="{{_selectInputType('number', selectedParameter.fieldType)}}">Numeric
+                                    </option>
+                                    <option value="text"
+                                        selected="{{_selectInputType('text', selectedParameter.fieldType)}}">Text
+                                    </option>
+                                    <option value="oknotok"
+                                        selected="{{_selectInputType('oknotok', selectedParameter.fieldType)}}">
+                                        Ok/Not-Ok
+                                    </option>
+                                    <option value="yesno"
+                                        selected="{{_selectInputType('yesno', selectedParameter.fieldType)}}">Yes/No
+                                    </option>
+                                </select>
+                            </div>
+
+                            <template is="dom-if" if="{{displayNumericOptions}}">
+                                <div class="form-group">
+                                    <label for="_uom_editParameter" class="text-muted m-0">UOM</label>
+                                    <input maxlength="100" type="text" class="form-control" id="_uom_editParameter"
+                                        value="{{selectedParameter.unitOfMeasure}}" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="_lowerLimit_editParameter" class="text-muted m-0">Low Limit</label>
+                                    <input maxlength="17" type="text" class="form-control"
+                                        id="_lowerLimit_editParameter" value="{{selectedParameter.lowerLimit}}"
+                                        title="Enter Number"
+                                        oninput="this.value = this.value.replace(/[^0-9.\-]/g, '').replace(/(\..*)\./g, '$1').replace(/(?!^)-/g, '');" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="_higherLimit_editParameter" class="text-muted m-0">High limit</label>
+                                    <input maxlength="17" type="text" class="form-control"
+                                        id="_higherLimit_editParameter" value="{{selectedParameter.upperLimit}}"
+                                        title="Enter Number"
+                                        oninput="this.value = this.value.replace(/[^0-9.\-]/g, '').replace(/(\..*)\./g, '$1').replace(/(?!^)-/g, '');" />
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_editParameter}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_editParameter}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_editParameter">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_editParameter">
+                                    <i class="fas fa-save mr-1"></i> Save
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal - deleteParameter -->
+        <div class="modal" id="_modal_deleteParameter" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Parameter</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_deleteParameter">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        Are you sure, you want to delete?
+                    </div>
+
+                    <div class="modal-footer flex-column align-items-stretch">
+                        <div>
+                            <template is="dom-if" if="{{_status_deleteParameter}}">
+                                <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-break text-center"
+                                    role="alert">
+                                    {{_status_deleteParameter}}
+                                </div>
+                            </template>
+                        </div>
+                        <div class="text-right">
+                            <button type="button" class="btn btn-light" data-dismiss="modal"
+                                on-click="_cancel_deleteParameter">
+                                Cancel
+                            </button>
+                            <button class="btn btn-danger" on-click="_confirm_deleteParameter">
+                                <i class="fas fa-trash mr-1"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: "view-asset-parameters-builder",
+            properties: {
+                selectedNodeData: {
+                    value: false
+                },
+                displayNumericOptions: {
+                    value: false
+                },
+                _query: {
+                    type: String,
+                    value: ''
+                },
+            },
+            observers: [],
+            created: function () {
+                document.documentElement.classList.remove("in-progress");
+            },
+
+            attached: function () { },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+            ready: function () { },
+
+            _checkAssetTemplateItems: function (obj) {
+                return !!Object.keys(obj).length;
+            },
+
+            _displayInputType: function (str) {
+                if (str === "number") {
+                    return "Numeric";
+                } else if (str === "text") {
+                    return "Text";
+                } else if (str === "oknotok") {
+                    return "Ok/Not-Ok";
+                } else if (str === "yesno") {
+                    return "Yes/No";
+                }
+            },
+
+            _displayNumericCells: function (str) {
+                return str === "number";
+            },
+
+            _selectInputType: function (str1, str2) {
+                return str1 === str2;
+            },
+
+            _displayNumericOptions: function (e) {
+                if (e.currentTarget.value === "number") {
+                    this.displayNumericOptions = true;
+                } else {
+                    this.displayNumericOptions = false;
+                }
+            },
+
+            _onResponse_hierarchy: function (e) {
+                // console.log('_onResponse_hierarchy', e);
+
+                var _root = this;
+
+                _root.async(function () {
+                    var $jstree = (_root.jstree = $(_root.querySelector("#jstree"))
+                        .jstree({
+                            plugins: ["search", "state", "types" /* , "checkbox" */],
+
+                            core: {
+                                animation: 0,
+                                multiple: false,
+                                check_callback: true,
+                                data: e.detail.response
+                            },
+
+                            search: {
+                                show_only_matches: true,
+                                show_only_matches_children: true
+                            },
+
+                            types: {
+                                default: {
+                                    icon: "fa fa-plus"
+                                },
+                                "0": {
+                                    icon: "fas fa-industry"
+                                },
+                                "1": {
+                                    icon: "fa fa-angle-double-right"
+                                }
+                            }
+                        })
+                        .on("loaded.jstree", function (e, data) {
+                            // console.log('loaded', e, data);
+                        })
+                        .on("ready.jstree", function (e, data) {
+                            // console.log('ready', e, data);
+                            _root.jstree.jstree("open_node", "1_anchor", function (e, d) {
+                                if (e.parents.length) {
+                                    _root.jstree.jstree("open_node", e.parent);
+                                }
+                            });
+                        })
+                        .on("changed.jstree", function (e, data) {
+                            if (data.node) {
+                                // console.log('changed', data.node.original, data.selected);
+                                _root.selectedNodeData = data.node.original;
+
+                                var selectTemplate = _root.querySelector("#selectTemplate");
+                                if (selectTemplate) {
+                                    selectTemplate.value = "";
+                                }
+
+                                /* var getAssetTemplateItems = _root.querySelector('#getAssetTemplateItems');
+                                            var getAssetTemplateItemsData = new FormData();
+                
+                                            getAssetTemplateItemsData = {
+                                                'nodeId': parseInt(_root.selectedNodeData.id),
+                                                'templateName': _root.selectedNodeData.text
+                                            }
+                                            // console.log('getAssetTemplateItemsData', getAssetTemplateItemsData);
+                                            getAssetTemplateItems.body = getAssetTemplateItemsData;
+                
+                                            getAssetTemplateItems.generateRequest(); */
+                            }
+                        })
+                        .bind("search.jstree", function (e, data) {
+                            if (data.nodes.length > 0) {
+                                _root.notFound = false;
+                            } else {
+                                _root.notFound = true;
+                            }
+                        }));
+
+                    var to = false;
+                    var $jstreeSearch = $("#jstreeSearch");
+                    var doSearch = function (evt) {
+                        if (to) {
+                            clearTimeout(to);
+                        }
+                        to = setTimeout(function () {
+                            var v = $jstreeSearch.val();
+                            _root.jstree.jstree(true).search(v);
+                            if (v.length == 0) {
+                                _root.notFound = false;
+                            }
+                        });
+                    };
+                    $jstreeSearch.keydown(doSearch);
+                    $jstreeSearch.click(doSearch);
+                });
+            },
+
+            _validate: function (_query) {
+
+                console.log(_query)
+                // debugger
+            },
+
+            _onResponse_assetTemplateItems: function (e) {
+                // console.log(e.detail.response)
+                this.addAssettemplate = e.detail.response;
+            },
+
+            _createParameters: function (e) {
+                var _root = this;
+
+                var addAssettemplate = _root.querySelector("#addAssettemplate");
+                var addAssettemplateData = new FormData();
+
+                addAssettemplateData = {
+                    nodeId: parseInt(_root.selectedNodeData.id),
+                    name: _root.selectedNodeData.text,
+                    description: _root.selectedNodeData.description
+                };
+                // console.log('addAssettemplateData', addAssettemplateData);
+                addAssettemplate.body = addAssettemplateData;
+
+                addAssettemplate.generateRequest();
+            },
+
+            _onResponse_addAssettemplate: function (e) {
+                if (e.detail.response) {
+                    this.querySelector("#getAssetTemplateItems").generateRequest();
+                }
+            },
+
+            _importTemplateParameters: function (e) {
+                var _root = this;
+
+                var assignAssetTemplate = _root.querySelector("#assignAssetTemplate");
+                var assignAssetTemplateData = new FormData();
+
+                assignAssetTemplateData = {
+                    assetTemplateId: parseInt(_root.addAssettemplate.id),
+                    templateId: parseInt(_root.querySelector("#selectTemplate").value)
+                };
+                // console.log('assignAssetTemplateData', assignAssetTemplateData);
+                assignAssetTemplate.body = assignAssetTemplateData;
+
+                assignAssetTemplate.generateRequest();
+            },
+            _onResponse_assignAssetTemplate: function (e) {
+                var _root = this;
+                if (e.detail.response) {
+                    _root.querySelector("#getAssetTemplateItems").generateRequest();
+                    var selectTemplate = _root.querySelector("#selectTemplate");
+                    if (selectTemplate) {
+                        selectTemplate.value = "";
+                    }
+                }
+            },
+
+            _addParameter: function (e) {
+                var _form_addParameter = this.querySelector("#_form_addParameter");
+                _form_addParameter.reset();
+
+                this.querySelector("#_inputType_addParameter").dispatchEvent(
+                    new Event("change")
+                );
+                this._status_addParameter = null;
+
+                $(this.$._modal_addParameter)
+                    .modal({
+                        backdrop: "static"
+                    })
+                    .modal("show");
+            },
+            _confirm_addParameter: function (e) {
+                var _form_addParameter = this.querySelector("#_form_addParameter");
+
+                if (_form_addParameter.checkValidity()) {
+                    e.preventDefault();
+
+                    var addParameter = this.querySelector("#addParameter");
+                    var addParameterData = new FormData();
+
+                    var _description_addParameter = this.querySelector(
+                        "#_description_addParameter"
+                    ).value;
+                    var _inputType_addParameter = this.querySelector(
+                        "#_inputType_addParameter"
+                    ).value;
+
+                    var _uom_addParameter = this.querySelector("#_uom_addParameter");
+                    var _lowerLimit_addParameter = this.querySelector(
+                        "#_lowerLimit_addParameter"
+                    );
+                    var _higherLimit_addParameter = this.querySelector(
+                        "#_higherLimit_addParameter"
+                    );
+
+                    addParameterData = {
+                        templateId: this.addAssettemplate.id,
+                        description: _description_addParameter,
+                        fieldType: _inputType_addParameter,
+                        unitOfMeasure: _uom_addParameter ? _uom_addParameter.value : "",
+                        lowerLimit: _lowerLimit_addParameter
+                            ? _lowerLimit_addParameter.value
+                            : "",
+                        upperLimit: _higherLimit_addParameter
+                            ? _higherLimit_addParameter.value
+                            : ""
+                    };
+                    // console.log('addParameterData', addParameterData);
+                    addParameter.body = addParameterData;
+
+                    addParameter.generateRequest();
+                }
+            },
+            _onResponse_addParameter: function (e) {
+                // console.log('_onResponse_addParameter', e.detail.response, e.detail.response.error);
+                if (e.detail.response && e.detail.response.error) {
+                    this._status_addParameter = e.detail.response.error;
+                } else {
+                    $(this.$._modal_addParameter).modal("hide");
+                    this._refreshParameters();
+                }
+            },
+            _close_addParameter: function (e) { },
+            _cancel_addParameter: function (e) { },
+
+            _editParameter: function (e) {
+                // console.log('_editParameter', e.currentTarget.dataset.fieldId);
+                e.stopPropagation();
+                var _root = this;
+
+                var _form_editParameter = _root.querySelector("#_form_editParameter");
+                _form_editParameter.reset();
+
+                var seclectedId = e.currentTarget.dataset.fieldId;
+
+                _root.selectedParameter = null;
+                _root.async(function () {
+                    for ( var i = 0; i < _root.assetTemplateItems.templateStructures.length; i++ ) {
+                        if ( _root.assetTemplateItems.templateStructures[i].fieldId == seclectedId ) {
+                            _root.selectedParameter = _root.assetTemplateItems.templateStructures[i];
+                        }
+                    }
+
+                    this.querySelector("#_inputType_editParameter").dispatchEvent(
+                        new Event("change")
+                    );
+                });
+
+                this._status_editParameter = null;
+
+                $(this.$._modal_editParameter)
+                    .modal({
+                        backdrop: "static"
+                    })
+                    .modal("show");
+            },
+
+            _confirm_editParameter: function (e) {
+                // console.log('_confirm_editParameter', e)
+                var _form_editParameter = this.querySelector("#_form_editParameter");
+
+                if (_form_editParameter.checkValidity()) {
+                    e.preventDefault();
+
+                    var editParameter = this.querySelector("#editParameter");
+
+                    var editParameterData = new FormData();
+
+                    var _description_editParameter = this.querySelector(
+                        "#_description_editParameter"
+                    ).value;
+                    var _inputType_editParameter = this.querySelector(
+                        "#_inputType_editParameter"
+                    ).value;
+
+                    var _uom_editParameter = this.querySelector("#_uom_editParameter");
+                    var _lowerLimit_editParameter = this.querySelector(
+                        "#_lowerLimit_editParameter"
+                    );
+                    var _higherLimit_editParameter = this.querySelector(
+                        "#_higherLimit_editParameter"
+                    );
+
+                    editParameterData = {
+                        templateId: this.addAssettemplate.id,
+                        fieldId: this.selectedParameter.fieldId,
+                        description: _description_editParameter,
+                        fieldType: _inputType_editParameter,
+                        unitOfMeasure: _uom_editParameter ? _uom_editParameter.value : "",
+                        lowerLimit: _lowerLimit_editParameter
+                            ? _lowerLimit_editParameter.value
+                            : "",
+                        upperLimit: _higherLimit_editParameter
+                            ? _higherLimit_editParameter.value
+                            : ""
+                    };
+                    // console.log('editParameterData', editParameterData);
+                    editParameter.body = editParameterData;
+
+                    editParameter.generateRequest();
+                }
+            },
+            _onResponse_editParameter: function (e) {
+                // console.log('_onResponse_deleteParameter', e.detail.response);
+                if (e.detail.response && e.detail.response.error) {
+                    this._status_editParameter = e.detail.response.error;
+                } else {
+                    $(this.$._modal_editParameter).modal("hide");
+                    this._refreshParameters();
+                }
+            },
+            _close_editParameter: function (e) { },
+            _cancel_editParameter: function (e) { },
+
+            _deleteParameter: function (e) {
+                // console.log('_deleteParameter', e.currentTarget.dataset.fieldId);
+                var _root = this;
+                _root._status_deleteParameter = null;
+                _root.deleteFieldId = e.currentTarget.dataset.fieldId;
+                $(_root.$._modal_deleteParameter)
+                    .modal({
+                        backdrop: "static"
+                    })
+                    .modal("show");
+            },
+
+            _confirm_deleteParameter: function () {
+                var deleteParameter = this.querySelector("#deleteParameter");
+                deleteParameter.url = "/template/structure/" + this.deleteFieldId;
+                deleteParameter.generateRequest();
+            },
+
+            _onResponse_deleteParameter: function (e) {
+                // console.log('_onResponse_deleteParameter', e.detail.response);
+                var _root = this;
+
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_deleteParameter = e.detail.response.error;
+                } else {
+                    $(_root.$._modal_deleteParameter).modal("hide");
+                    _root._refreshParameters();
+                }
+            },
+            _close_deleteParameter: function (e) { },
+            _cancel_deleteParameter: function (e) { },
+
+            _refreshParameters: function () {
+                this.querySelector("#getAssetTemplateItems").generateRequest();
+            }
+        });
+    </script>
+</dom-module>

@@ -1,0 +1,117 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<dom-module id="departments-detail">
+
+    <template>
+
+        <style>
+            .text-break {
+                word-break: break-word !important;
+            }
+        </style>
+
+
+        <global-loader>
+            <iron-ajax auto id="_departmentSectionsItems" url$="/department/sections/{{itemData.id}}" method="GET"
+                last-response="{{_response_departmentSectionsItems}}">
+            </iron-ajax>
+        </global-loader>
+
+        <div class="detail d-flex flex-column">
+
+            <div class="flex-grow-0 ">
+                <div class="p-4 bg-secondary text-light ">
+                    <div class="d-flex ">
+                        <div class="col-12 p-0 ">
+                            <div class="h5 m-0 text-break">Department Information</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="flex-grow-1 overflow-auto">
+
+                <div class="d-flex flex-wrap">
+
+                    <div class="border-bottom col-12 my-2 px-4 pb-3">
+                        <div class="text-muted">Name</div>
+                        <div class="text-break">{{itemData.name}}</div>
+
+                    </div>
+
+                    <div class="border-bottom col-12 my-2 px-4 pb-3">
+                        <div class="text-muted">Sections ({{_response_departmentSectionsItems.length}})</div>
+                        <template is="dom-repeat" items="{{_response_departmentSectionsItems}}">
+                            <div class="text-break py-1"><i
+                                    class="fas fa-th fa-sm mr-2 text-muted"></i>{{item.sectionName}}
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+
+
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "departments-detail",
+
+            properties: {
+                itemData: {
+                    observer: '_itemDataChanged'
+                },
+            },
+
+            _itemDataChanged: function (e) {
+                // console.log('_itemDataChanged', e);
+                var _root = this;
+
+                if (_root.itemData && _root.itemData.id) {
+                    _root.$._departmentSectionsItems.generateRequest();
+                }
+            },
+
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+
+            },
+
+            ready: function () {
+            },
+            _test: function () {
+                var _root = this;
+                // console.log(_root.itemData);
+            },
+
+            attached: function () {
+
+            },
+
+            detached: function () {
+
+            },
+
+            attributeChanged: function (name, type) {
+
+            },
+
+            _isEqual: function (first, second) {
+                return first === second
+            },
+
+        });
+    </script>
+
+</dom-module>

@@ -1,0 +1,1020 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html" />
+<link rel="import" href="../../bower_components/global-var/global-var.html">
+<link rel="import" href="asset-management-tag-list.html">
+<dom-module id="asset-management-list">
+
+    <template>
+
+        <style>
+            .list-container {
+                height: calc(100vh - 10rem);
+                overflow-y: auto;
+            }
+
+            .has-search .form-control {
+                padding-left: 2.375rem;
+            }
+
+            .nav-link.active {
+                background: #dee2e6;
+            }
+
+            .has-search .form-control-feedback {
+                position: absolute;
+                z-index: 2;
+                display: block;
+                width: 2.375rem;
+                height: 2.375rem;
+                line-height: 2rem;
+                text-align: center;
+                pointer-events: none;
+                color: #aaa;
+            }
+
+            .type-red {
+                color: #e80000
+            }
+
+            .type-orange {
+                color: orange
+            }
+
+            .type-green {
+                color: #007900
+            }
+
+            .list-group-item.active {
+                background-color: #6c757d;
+                border-color: rgba(0, 0, 0, .125);
+                color: #efefef;
+            }
+
+            .list-group-item.active .text-black-50 {
+                color: rgba(255, 255, 255, .75) !important;
+            }
+
+
+            .list.constrained.detail-active {
+                display: none
+            }
+
+            .detail.list-active {
+                display: none
+            }
+
+            .back-link {
+                display: none
+            }
+
+            .detail.constrained .back-link {
+                display: block
+            }
+
+            .detail.constrained.list-active {
+                display: none
+            }
+
+            ::content .detail.constrained .detail-container {
+                height: auto !important;
+            }
+
+            .detail {
+                width: calc(100% - 25% - 64px);
+            }
+
+            .fa-bell {
+                font-size: 18px;
+            }
+
+            ::content .filters-container {
+                overflow-y: auto;
+                background: #dee2e6;
+            }
+
+
+
+            #sortBy,
+            #sortIcon {
+                cursor: pointer;
+            }
+
+
+            .opcUATagtatus.high,
+            .opcUAtatus.high {
+                color: #d00000;
+            }
+
+            .opcUATagtatus.medium,
+            .opcUAtatus.medium {
+                color: #f2b600;
+            }
+
+            .opcUAtatus,
+            .opcUAtatus.low,
+            .opcUATagtatus,
+            .opcUATagtatus.low {
+                color: #4fbb00;
+            }
+
+            .header {
+                align-items: center;
+            }
+
+            .btn-light {
+                background-color: #dae0e5;
+                border-color: #d3d9df;
+            }
+
+            .fa-link {
+                transform: rotate(90deg);
+                font-size: 9px;
+                margin-top: 12px;
+                margin-left: -5px;
+            }
+
+            .fa-info-circle {
+                outline-color: transparent;
+                text-decoration: none;
+                color: #343a40;
+                cursor: pointer;
+                font-size: 16px;
+            }
+
+            ::-webkit-scrollbar {
+                width: 10px;
+                border-radius: 10px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #555;
+                border-radius: 10px;
+            }
+
+            .subtitle {
+                word-wrap: break-word;
+            }
+
+            .fas,
+            .list-group-item-action {
+                cursor: pointer;
+            }
+
+            .sidebar {
+                overflow: hidden;
+            }
+
+            .editPanel {
+                position: absolute;
+                top: 5px;
+                right: 0px;
+            }
+
+            .list-group :first-child {
+                border-top: 0px;
+            }
+
+            .active {
+                background-color: #6c757d;
+                border-color: rgba(0, 0, 0, .125);
+                color: #efefef;
+            }
+
+            .editControls button {
+                width: 100%;
+            }
+
+            .title {
+                word-wrap: break-word;
+            }
+
+            .form-icon {
+                font-size: 20px;
+            }
+
+            .asset-actions span {
+                max-width: 0;
+                -webkit-transition: max-width 1s;
+                transition: max-width 1s;
+                display: inline-block;
+                vertical-align: top;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            .asset-actions:hover span {
+                max-width: 7rem;
+            }
+
+            .csvTagUploadContainer {
+                position: relative;
+                overflow: hidden;
+            }
+
+            .csvTagUpload {
+                position: absolute;
+                font-size: 50px;
+                opacity: 0;
+                right: 0;
+                top: 0;
+                cursor: pointer;
+            }
+        </style>
+        <template is="dom-if" if="[[ApiAlerts]]">
+            <div style="z-index:10;" class="alert alert-info mb-0 alert-dismissible fade show " role="alert">
+                <button type="button" class="close" data-dismiss="alert" on-click="_dismissAlert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <span id="ApiAlerts">[[ApiAlerts]]</span>
+            </div>
+        </template>
+        <div class="container-fluid h-100">
+
+            <div class="row ">
+                <nav class="bg-light  flex-lg-grow-0 sidebar   text-center border-right">
+                    <ul class="sub-nav nav flex-lg-column">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3" href="#/data-management/upload-csv"
+                                data-toggle="tooltip" data-placement="right" title="Upload CSV">
+                                <i class="fas fa-upload"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 " href="#/data-management/derived-tags"
+                                data-toggle="tooltip" data-placement="right" title="Derived Tags">
+                                <i class="fas fa-tags"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3" href="#/data-management/aggregated-tag"
+                                data-toggle="tooltip" data-placement="right" title="Aggregated Tag">
+                                <i class="fas fa-tag"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 " href="#/data-management/datasource"
+                                data-toggle="tooltip" data-placement="right" title="Data Source Connectivity">
+                                <i class="fas fa-satellite-dish"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 " href="#/data-management/tag-management"
+                                data-toggle="tooltip" data-placement="right" title="Tag Management">
+                                <i class="far fa-list-alt"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 active" href="#/data-management/asset-management"
+                                data-toggle="tooltip" data-placement="right" title="Asset Management">
+                                <i class="fas fa-project-diagram"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark px-4 py-3 " href="#/data-management/cto-model-upload"
+                                data-toggle="tooltip" data-placement="right" title="Model Management">
+                                <i class="far fa-file-code"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <div id="list" class="list w-25  border-right p-0">
+                    <div class="filters-container  p-2 border-bottom">
+                        <div class="d-flex header">
+                            <div class=" py-0 flex-fill lead" for="opcUA"><strong>Asset Management</strong>
+                                <button type="button" on-click="_openPanel" data-opcPanel="addAssetManagement"
+                                    class="btn btn-primary pr-1 asset-actions btn-sm">
+                                    <i class="fas fa-plus"></i> <span>Add Asset</span>
+                                </button>
+                            </div>
+                            <div
+                                class="file csvTagUploadContainer asset-actions mr-1 pr-1 btn btn-sm btn-outline-primary">
+                                <i class="far fa-file-alt"></i>
+                                <span>CSV Upload</span>
+                                <input class="csvTagUpload" accept=".csv" on-change="_uploadTagCSV" type="file"
+                                    name="file" />
+
+                            </div>
+                            <!-- <div>
+                                <a href="JavaScript:(0);" title="Aggregated Tags" data-toggle="popover" data-html="true"
+                                    data-placement="bottom" data-trigger="focus" data-content="Iridium allows the user to aggregate the tag values and smoothen out the trend line. First select the tag that needs to be aggregated; box labeled as 'operator' open the drop down that allows the user to select the aggregation classifier, the tag can be aggregated around the minimum, maximum and average values. The tags can then be grouped across different time frames; this functionality allows the user to collect the tags across minutes, hours, days, weeks, months and even years. 
+                                    Once you have constructed the formula, input the tag name and description to incorporate this tag to the existing list. 
+                                    
+                                                            "><i class="fas fa-info-circle "></i></a>
+                            </div> -->
+
+                        </div>
+                    </div>
+                    <div class=" px-2 pt-2 border-bottom bg-light">
+                        <div class="form-group has-search my-1 input-group-sm">
+                            <span class="fa fa-search form-control-feedback"></span>
+                            <input type="text" class="form-control" value="{{_query::input}}" placeholder="Search">
+                        </div>
+
+                        <div class=" form-group d-flex my-1 text-black-50">
+                            <label for="sortBy" class="col-form-label mr-1 form-control-sm">Sort by: </label>
+                            <div class="flex-grow-1">
+                                <select class="form-control form-control-plaintext text-black-50 form-control-sm"
+                                    id="sortBy" on-change="_sortByChange">
+                                    <option value="title">Name</option>
+                                    <option value="description">Description</option>
+                                </select>
+                            </div>
+                            <div id="sortUA" class="ml-1 col-form-label form-control-sm" on-click="_reverseSort">
+                                <i id="sortIconUA" class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="list-container position-sticky ">
+                        <ul id="opc_list__body" class="list-group list-group-flush" on-scroll="_updateClass">
+                            <template is="dom-repeat" items="{{listItems}}" as="listItem"
+                                filter="{{_computeFilter(_query)}}" sort="{{_computeSort(sortBy,sortOrder)}}">
+                                <li id$="[[listItem.asset_name]]" data-listid$="[[index]]" on-click="_getAssetDetails"
+                                    data-AssetName$="{{listItem.asset_id}}"
+                                    class$="list-group-item   list-group-item-action pointer {{_computeClass(selectedItem,listItem.asset_name)}}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div class="text-left pl-4 col-md-12">
+                                            <template is="dom-if" if="{{listItem.asset_name}}">
+                                                <div class="d-flex align-items-baseline">
+                                                    <div class="title flex-fill">[[_incrementalIndex(index)]]:
+                                                        {{listItem.asset_name}}
+                                                    </div>
+                                                    <i class="fas fa-cog float-right editPanel"
+                                                        data-listid$="[[listItem.asset_name]]"
+                                                        on-click="_editAssetManagement"></i>
+                                                </div>
+                                            </template>
+                                            <template is="dom-if" if="{{listItem.description}}">
+                                                <div class="time small text-capitalize text-black-50">Description:
+                                                    {{listItem.description}}</div>
+                                            </template>
+                                            <template is="dom-if" if="{{listItem.attributes}}">
+                                                <small class="subtitle text-black-50">Total Attributes:
+                                                    {{_checkTotalAttribute(listItem.attributes)}}</small>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
+                <template is="dom-if" if="[[addAssetManagement]]">
+                    <div class=" w-25 bg-light">
+                        <div class=" flex-column pt-2  h-100 border-right">
+                            <div class="px-3">
+                                <div class="d-flex pb-1 mb-1 header">
+                                    <div class="col-form-label py-0 flex-fill h6" for="opcUA">Add Asset
+                                    </div>
+                                </div>
+                                <hr class="m-0">
+                                <form id="addAssetManagement" onsubmit="return false">
+                                    <div class="form-group mb-2">
+                                        <label class="col-form-label py-1" for="AssetManagementName">Asset Name</label>
+                                        <input required type="text" class="form-control" id="AssetManagementName"
+                                            onkeypress="return event.charCode >= 48" pattern="[a-zA-Z][a-zA-Z0-9\s_.]*"
+                                            name="AssetManagementName" />
+                                    </div>
+                                    <div class="form-group mb-2">
+                                        <label class="col-form-label py-1"
+                                            for="AssetManagementDescription">Description</label>
+                                        <textarea required type="text" class="form-control"
+                                            pattern="[a-zA-Z][a-zA-Z0-9\s_.]*" id="AssetManagementDescription"
+                                            name="AssetManagementDescription"></textarea>
+                                    </div>
+                                    <div class="form-group mb-0 d-flex">
+                                        <label class="col-form-label  flex-grow-1"
+                                            for="AssetManagementName"><u>Attributes</u></label>
+                                        <i on-click="_addAttribute" class="fas mt-2 pt-1 fa-plus-circle form-icon"></i>
+                                    </div>
+                                    <div class="d-flex mb-2">
+                                        <div class="form-group  ">
+                                            <label class="col-form-label pt-0" for="AssetAttributeName">Name</label>
+                                            <input type="text" autocomplete="off" class="form-control"
+                                                id="AssetAttributeName">
+                                        </div>
+                                        <div class="form-group  ml-1">
+                                            <label class="col-form-label pt-0" for="AssetAttributeValue">Value</label>
+                                            <input type="text" autocomplete="off" class="form-control"
+                                                id="AssetAttributeValue">
+                                        </div>
+                                    </div>
+                                    <template is="dom-if" if="[[addConditionalTags]]">
+                                        <template is="dom-repeat" items="{{addConditionalTags}}"
+                                            as="addConditionalTags">
+                                            <hr class="hr-text my-2" data-content="AND">
+                                            <div class="float-right">
+                                                <i class=" fas fa-times-circle text-dark "
+                                                    on-click="removeCondition"></i>
+                                            </div>
+                                            <div class="d-flex mb-2">
+                                                <div class="form-group  ">
+                                                    <label class="col-form-label pt-0"
+                                                        for$="AssetAttributeName_[[index]]">Name</label>
+                                                    <input type="text" required autocomplete="off" class="form-control"
+                                                        id$="AssetAttributeName_[[index]]">
+                                                </div>
+                                                <div class="form-group  ml-1">
+                                                    <label class="col-form-label pt-0"
+                                                        for$="AssetAttributeValue_[[index]]">Value</label>
+                                                    <input type="text" required autocomplete="off" class="form-control"
+                                                        id$="AssetAttributeValue_[[index]]">
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template is="dom-if" if="[[addApiAlerts]]" restamp>
+                                        <div style="z-index:10;"
+                                            class="alert alert-info mb-0 alert-dismissible fade show mb-2" role="alert">
+                                            <button type="button" class="close" data-dismiss="alert"
+                                                on-click="_dismissAlert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                            <span id="addApiAlerts">[[addApiAlerts]]</span>
+                                        </div>
+                                    </template>
+                                    <div class="d-flex flex-row  pb-2">
+                                        <button type="reset" data-opcPanel="addAssetManagement"
+                                            class="btn btn-light btn-sm col-md-6 mr-1"
+                                            on-click="_cancelPanel">Cancel</button>
+                                        <button type="submit" class="btn btn-primary btn-sm col-md-6"
+                                            on-click="_saveAssetManagement">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template is="dom-if" if="[[editAssetManagement]]" restamp>
+                    <div class=" w-25 bg-light">
+                        <div class=" flex-column pt-2  h-100 border-right">
+                            <div class="px-3">
+                                <div class="d-flex pb-1 mb-1 header">
+                                    <div class="col-form-label py-0 flex-fill h6" for="opcUA">Edit Asset
+                                    </div>
+                                </div>
+                                <hr class="m-0">
+                                <form id="editAssetManagement" onsubmit="return false">
+                                    <div class="form-group mb-2">
+                                        <label class="col-form-label py-1" for="AssetManagementName">Name</label>
+                                        <input readonly type="text" class="form-control" id="AssetManagementName"
+                                            value="{{selectedAsset.asset_name}}" name="AssetManagementName"
+                                            onkeypress="return event.charCode >= 48"
+                                            pattern="[a-zA-Z][a-zA-Z0-9\s_.]*" />
+                                    </div>
+                                    <div class="form-group mb-2">
+                                        <label class="col-form-label py-1"
+                                            for="AssetManagementDescription">Description</label>
+                                        <textarea required type="text" value="{{selectedAsset.description}}"
+                                            class="form-control" id="AssetManagementDescription"
+                                            pattern="[a-zA-Z][a-zA-Z0-9\s_.]*"
+                                            name="AssetManagementDescription"></textarea>
+                                    </div>
+                                    <div class="form-group mb-0 d-flex">
+                                        <label class="col-form-label  flex-grow-1"
+                                            for="AssetManagementName"><u>Attributes</u></label>
+                                        <i on-click="_addAttribute" class="fas mt-2 pt-1 fa-plus-circle form-icon"></i>
+                                    </div>
+                                    <template is="dom-if" if="[[addConditionalTags]]">
+                                        <template is="dom-repeat" items="{{addConditionalTags}}"
+                                            as="addConditionalTags">
+                                            <hr class="hr-text my-2" data-content="AND">
+                                            <div class="float-right">
+                                                <i class=" fas fa-times-circle text-dark "
+                                                    on-click="removeCondition"></i>
+                                            </div>
+                                            <div class="d-flex mb-2">
+                                                <div class="form-group  ">
+                                                    <label class="col-form-label pt-0"
+                                                        for$="AssetAttributeName_[[index]]">Name</label>
+                                                    <input type="text" required autocomplete="off" class="form-control"
+                                                        id$="AssetAttributeName_[[index]]">
+                                                </div>
+                                                <div class="form-group  ml-1">
+                                                    <label class="col-form-label pt-0"
+                                                        for$="AssetAttributeValue_[[index]]">Value</label>
+                                                    <input type="text" required autocomplete="off" class="form-control"
+                                                        id$="AssetAttributeValue_[[index]]">
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template is="dom-if" if="[[selectedAssetAttributes]]" restamp>
+                                        <template is="dom-repeat" items="{{selectedAssetAttributes}}"
+                                            as="presetAttributes">
+                                            <hr class="hr-text my-2" data-content="AND">
+                                            <div>
+                                                <i data-index$=[[index]] class=" fas fa-times-circle text-dark "
+                                                    on-click="removePresetAttributes"></i>
+                                            </div>
+                                            <div class="d-flex mb-2">
+                                                <div class="form-group  ">
+                                                    <label class="col-form-label pt-0"
+                                                        for$="presetAssetAttributeName_[[index]]">Name</label>
+                                                    <input type="text" disabled autocomplete="off" class="form-control"
+                                                        id$="presetAssetAttributeName_[[index]]"
+                                                        value="{{presetAttributes.name}}">
+                                                </div>
+                                                <div class="form-group  ml-1">
+                                                    <label class="col-form-label pt-0"
+                                                        for$="presetAssetAttributeValue_[[index]]">Value</label>
+                                                    <input type="text" required autocomplete="off" class="form-control"
+                                                        id$="presetAssetAttributeValue_[[index]]"
+                                                        value={{presetAttributes.value}}>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                    <template is="dom-if" if="[[editApiAlerts]]" restamp>
+                                        <div style="z-index:10;"
+                                            class="alert alert-info mb-0 alert-dismissible fade show mb-2" role="alert">
+                                            <button type="button" class="close" data-dismiss="alert"
+                                                on-click="_dismissAlert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                            <span id="editApiAlerts">[[editApiAlerts]]</span>
+                                        </div>
+                                    </template>
+                                    <div class="d-flex flex-row editControls  mb-2">
+                                        <button type="reset" data-opcPanel="editAssetManagement"
+                                            class="btn btn-light btn-sm  mr-1" on-click="_cancelPanel">Cancel</button>
+                                        <button type="button" class="btn btn-danger btn-sm  "
+                                            on-click="_removeAssetManagement">Delete</button>
+                                    </div>
+                                    <div class="d-flex flex-row pb-2">
+                                        <button type="submit" class="btn btn-primary btn-sm col-md-12 "
+                                            on-click="_updateAssetManagement">Update</button>
+                                    </div>
+                                </form>
+
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template is="dom-if" if="[[listUnitItems]]" restamp>
+                    <asset-management-tag-list class="w-25" list-Unit-Items='{{listUnitItems}}'
+                        selected-Asset='{{selectedAssetManagementName}}' disable-auto-select="true"
+                        sort-order="ascending">
+                    </asset-management-tag-list>
+                </template>
+            </div>
+        </div>
+        <global-loader>
+            <iron-ajax method="POST" id="addAsset" url="/addAsset" handle-as="json" content-type="application/json"
+                on-response="_onResponse_addAsset" on-error="_onError_addAsset">
+            </iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax method="POST" id="updateAsset" url="/updateAsset" handle-as="json"
+                content-type="application/json" on-response="_onResponse_updateAsset" on-error="_onError_updateAsset">
+            </iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax id="removeAsset" url="/removeAsset/[[assetID]]" on-error="_onError_removeAsset"
+                on-response="_onResponse_removeAsset"></iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax id="getAssetTags" url="/getAssetTags/[[selectedAssetManagementName]]"
+                on-response="_onResponse_getAssetTags" on-error="_onError_getAssetTags"></iron-ajax>
+        </global-loader>
+        <global-loader>
+            <iron-ajax method="POST" id="uploadAssetsFile" on-response="_onResponse_fileUpload"
+                on-error="_onError_fileUpload">
+            </iron-ajax>
+        </global-loader>
+    </template>
+
+    <script>
+        Polymer({
+            is: "asset-management-list",
+
+            behaviors: [
+                Polymer.IronResizableBehavior
+            ],
+            listeners: {
+                "iron-resize": "_calculateBounds"
+            },
+            properties: {
+                /**
+                 * Array of items to include in the list. Each item in the array should be an object with:
+                 * - id (used for fetching the details view)
+                 * - title
+                 * - subtitle
+                 * - severity (one of "important", "error", "warning", or "information")
+                 * - date (optional, should be valid <a href="https://www.w3.org/TR/NOTE-datetime">8601 date strings</a>)
+                 */
+                listItems: {
+                    type: Array,
+                    notify: true
+                },
+                /**
+                 * ID of the selected item, for pulling up the details to display in the right side of the inbox view.
+                 */
+                selectedItem: {
+                    type: String,
+                    notify: true
+                },
+                /**
+                 * Search query used to filter the list.
+                 */
+                _query: {
+                    type: String
+                },
+                /**
+                 * Property to sort the list by.
+                 */
+                sortBy: {
+                    type: String,
+                    value: "title"
+                },
+                /**
+                 * Sort order - ascending or descending.
+                 */
+                sortOrder: {
+                    type: String,
+                    value: "ascending"
+                },
+                /**
+                 * By default, the first item in the list will be selected.
+                 * Set this flag to "true" to disable this default selection.
+                 */
+                disableAutoSelect: {
+                    type: Boolean,
+                    value: false
+                }
+            },
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+            attached: function () {
+                this.async(function () {
+                    $('[data-toggle="tooltip"]').tooltip();
+                    $('[data-toggle="popover"]').popover();
+                });
+            },
+            detached: function () {
+            },
+            attributeChanged: function (name, type) {
+            },
+            ready: function () {
+                var root = this;
+                root.addTimeseriesAssetManagement = false;
+                root.addCondTags = [];
+            },
+            _checkTotalAttribute: function (attributeLength) {
+                return attributeLength.length;
+            },
+            _addAttribute: function () {
+                var root = this;
+                root.addCondTags.push(root.addCondTags.length + 1);
+                root.addConditionalTags = [];
+                root.addConditionalTags = root.addCondTags;
+            },
+            removePresetAttributes: function (e) {
+                var root = this;
+                var arr = root.selectedAsset.attributes;
+
+                var index = e.currentTarget.dataset.index;
+
+                if (index > -1) {
+                    arr.splice(index, 1);
+                }
+                root.selectedAssetAttributes = false;
+                root.selectedAssetAttributes = arr;
+            },
+            removeCondition: function () {
+                var root = this;
+                if (root.addConditionalTags.length > 0) {
+                    root.addCondTags.pop();
+                    root.addConditionalTags = [];
+                    root.addConditionalTags = root.addCondTags;
+                }
+                else {
+                    root.addConditionalTags = 0;
+                }
+            },
+            _saveAssetManagement: function () {
+                var root = this;
+                if (root.$$('#addAssetManagement').checkValidity()) {
+                    var attributeList = [];
+                    if (root.$$('#AssetAttributeName').value) {
+                        attributeList.push({
+                            "name": root.$$('#AssetAttributeName').value,
+                            "value": root.$$('#AssetAttributeValue').value
+                        });
+                    }
+                    if (root.addCondTags.length > 0) {
+                        for (var i = 0; i < root.addCondTags.length; i++) {
+                            let attrValue = '#AssetAttributeValue_' + i;
+                            let attrName = '#AssetAttributeName_' + i;
+                            if (attrName) {
+                                attributeList.push({
+                                    "name": root.$$(attrName).value,
+                                    "value": root.$$(attrValue).value
+                                });
+                            }
+                        }
+                    }
+
+                    var formDataObject = {};
+                    var formDataObject = {
+                        "org_id": window.organization_id.toLowerCase(),
+                        "asset_name": root.$$('#AssetManagementName').value.toLowerCase(),
+                        "description": root.$$('#AssetManagementDescription').value,
+                        "attributes": attributeList
+                    }
+                    root.$.addAsset.body = JSON.stringify(formDataObject);
+                    root.$.addAsset.generateRequest();
+                }
+            },
+            _updateAssetManagement: function () {
+                var root = this;
+                if (root.$$('#editAssetManagement').checkValidity()) {
+                    var attributeList = [];
+                    if (root.addCondTags.length > 0) {
+                        for (var i = 0; i < root.addCondTags.length; i++) {
+                            let attrValue = '#AssetAttributeValue_' + i;
+                            let attrName = '#AssetAttributeName_' + i;
+                            if (attrName) {
+                                attributeList.push({
+                                    "name": root.$$(attrName).value,
+                                    "value": root.$$(attrValue).value
+                                });
+                            }
+                        }
+                    }
+                    if (root.selectedAssetAttributes.length > 0) {
+                        for (var i = 0; i < root.selectedAssetAttributes.length; i++) {
+                            let attrValue = '#presetAssetAttributeValue_' + i;
+                            let attrName = '#presetAssetAttributeName_' + i;
+                            if (attrName) {
+                                attributeList.push({
+                                    "name": root.$$(attrName).value,
+                                    "value": root.$$(attrValue).value
+                                });
+                            }
+                        }
+                    }
+                    var formDataObject = {};
+                    var formDataObject = {
+                        "org_id": window.organization_id.toLowerCase(),
+                        "asset_id": root.selectedAsset.asset_id,
+                        "description": root.$$('#AssetManagementDescription').value,
+                        "attributes": attributeList
+                    }
+                    root.$.updateAsset.body = JSON.stringify(formDataObject);
+                    root.$.updateAsset.generateRequest();
+                }
+            },
+            _getAssetDetails: function (e) {
+                var root = this;
+                root.listUnitItems = false;
+                root.addAssetManagement = false;
+                root.editAssetManagement = false;
+                root.selectedAssetManagementName = e.currentTarget.dataset.assetname;
+                root.$.getAssetTags.generateRequest();
+                var seclectedTagId = e.currentTarget.id;
+                document.getElementById(seclectedTagId).classList.add("active");
+                root.selectedItem = document.getElementById(seclectedTagId).id;
+            },
+            _computeClass: function (selectedId, id) {
+                return (selectedId && String(selectedId) === String(id)) ? 'active' : '';
+            },
+            _calculateBounds: function (evt) {
+                this.debounce('resize', function () {
+                    if (this.getBoundingClientRect().width < 700) {
+                        this.toggleClass('constrained', true, this.$.list);
+                        this.toggleClass('constrained', true, this.$.detail);
+
+                        this.toggleClass('detail-active', false, this.$.list);
+                        this.toggleClass('list-active', true, this.$.detail);
+
+                    } else {
+                        this.toggleClass('constrained', false, this.$.list);
+                        this.toggleClass('constrained', false, this.$.detail);
+
+                        this.toggleClass('detail-active', true, this.$.list);
+                        this.toggleClass('list-active', false, this.$.detail);
+                    }
+                }, 300);
+            },
+            _computeFilter: function (query) {
+                if (!query) {
+                    // set filter to null to disable filtering
+                    return null;
+                } else {
+                    // return a filter function for the current search query
+                    query = query.toLowerCase();
+                    return function (listItem) {
+                        var title = listItem.asset_name.toLowerCase();
+                        var description = listItem.description ? listItem.description.toLowerCase() : '';
+
+                        return (title.indexOf(query) != -1
+                            || description.indexOf(query) != -1);
+                    };
+                }
+            },
+            _computeSort: function (sortBy, sortOrder) {
+                sortBy = sortBy ? sortBy.toLowerCase().replace(/\s+/g, '') : '';
+                var asc = sortOrder === 'ascending';
+                // return sort function which maps severities to numeric values
+                if (asc) {
+                    return function (a, b) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : -1;
+                    }
+                } else if (!asc) {
+                    return function (b, a) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : 0;
+
+                    }
+                }
+            },
+            _reverseSort: function (e) {
+                var id = e.currentTarget.id;
+                var sectionId = id.slice(4, 20);
+                var sort = 'sortIcon' + sectionId;
+                this.async(function () {
+                    if (this.sortOrder === 'ascending') {
+                        this.sortOrder = 'descending';
+                        this.$[sort].classList.value = 'fas fa-arrow-up';
+                    } else if (this.sortOrder === 'descending') {
+                        this.sortOrder = 'ascending';
+                        this.$[sort].classList.value = 'fas fa-arrow-down';
+                    }
+                });
+
+            },
+            _updateClass: function () {
+                this.debounce('_updateClass', function () {
+                    if (this.$.list__body.scrollTop > 0) {
+                        this.toggleClass('shadow-component', true, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    } else {
+                        this.toggleClass('shadow-component', false, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    }
+                }, 50);
+            },
+            _editAssetManagement: function (evt) {
+                evt.stopPropagation()
+                var root = this;
+                root.listUnitItems = false;
+                root.editApiAlerts = false;
+                root.addApiAlerts = false;
+                var seclectedTagId = window.organization_id.toLowerCase() + '_' + evt.currentTarget.dataset.listid;
+                for (var i = 0; i < root.listItems.length; i++) {
+                    if (root.listItems[i].asset_id == seclectedTagId) {
+                        root.selectedAsset = root.listItems[i];
+                        root.selectedAssetAttributes = root.selectedAsset.attributes
+                        root.addConditionalTags = root.selectedAsset.attributes.length;
+                    }
+                }
+                if (!root.editAssetManagement) {
+                    root.editApiAlerts = false;
+                    root.addApiAlerts = false;
+                    root.addAssetManagement = false;
+                    root.editAssetManagement = true;
+                }
+                document.getElementById(evt.currentTarget.dataset.listid).classList.add("active");
+                root.selectedItem = document.getElementById(evt.currentTarget.dataset.listid).id;
+            },
+            _sortByChange: function (e) {
+                this.set('sortBy', e.target.value)
+            },
+            _onResponse_addAsset: function (e) {
+                var root = this;
+                root.addApiAlerts = e.detail.response.status;
+                if (root.addApiAlerts.includes("successful")) {
+                    root._clearForm('addAssetManagement');
+                }
+                // root.async(function () {
+                //     root.addApiAlerts = "";
+                //     root.addAssetManagement = "";
+                // }, 5000);
+                document.getElementById('getAssets').generateRequest();
+            },
+            _removeAssetManagement: function () {
+                var root = this;
+                root.assetID = root.selectedAsset.asset_id;
+                root.$.removeAsset.generateRequest();
+            },
+            _onResponse_updateAsset: function (e) {
+                var root = this;
+                root.editApiAlerts = e.detail.response.status;
+                if (root.editApiAlerts.includes("successful")) {
+                    root._clearForm('editAssetManagement');
+                }
+                // this.async(function () {
+                //     root.editApiAlerts = false;
+                //     root.editAssetManagement = false;
+                // }, 5000);
+                document.getElementById('getAssets').generateRequest();
+            },
+            _onResponse_removeAsset: function (e) {
+                var root = this;
+                root.editApiAlerts = e.detail.response.status;
+                root.async(function () {
+                    // root.editApiAlerts = false;
+                    root.editAssetManagement = false;
+                }, 5000);
+                document.getElementById('getAssets').generateRequest();
+            },
+            _cancelPanel: function (e) {
+                var root = this;
+                var section = e.currentTarget.dataset.opcpanel;
+                if (section == 'listUnitItems') {
+                    root.editApiAlerts = false;
+                    root.addApiAlerts = false;
+                }
+                root[section] = false;
+                document.getElementById('getAssets').generateRequest();
+            },
+            _openPanel: function (e) {
+                var root = this;
+                var section = e.currentTarget.dataset.opcpanel;
+                if (section == 'addAssetManagement') {
+                    root[section] = true;
+                    root.editApiAlerts = false;
+                    root.addApiAlerts = false;
+                    root.editAssetManagement = false;
+                    root.listUnitItems = false;
+                }
+                else if (section == 'editAssetManagement') {
+                    root[section] = true;
+                    root.editApiAlerts = false;
+                    root.addApiAlerts = false;
+                    root.addAssetManagement = false;
+                    root.listUnitItems = false;
+                }
+                root[section] = true;
+            },
+            _onResponse_getAssetTags: function (e) {
+                var root = this;
+                root.listUnitItems = null;
+                root.listUnitItems = e.detail.response;
+            },
+            _onResponse_fileUpload: function (e) {
+                document.getElementById('getAssets').generateRequest();
+                var root = this;
+                var response = e.detail.response
+                response = JSON.parse(response);
+                if (response.status) {
+
+                    root.ApiAlerts = response.status;
+                    // this.async(function () {
+                    //     root.ApiAlerts = false;
+                    // }, 5000);
+                }
+            },
+            _uploadTagCSV: function (e) {
+                var root = this;
+                var tagFile = e.target.files[0];
+                if (tagFile) {
+
+                    var data = new FormData();
+                    data.append('orgID', window.organization_id);
+                    data.append('file', tagFile);
+                    var uploadAssetsFile = document.getElementById('uploadAssetsFile');
+                    uploadAssetsFile.body = data;
+                    uploadAssetsFile.contentType = false;
+                    uploadAssetsFile.withCredentials = true;
+                    uploadAssetsFile.handleAs = 'text';
+                    uploadAssetsFile.mimeType = 'multipart/form-data';
+                    uploadAssetsFile.headers["username"] = "administrator";
+                    uploadAssetsFile.headers["password"] = "7eRmina7oR";
+                    uploadAssetsFile.url = window.api_url + ':82/assetsFileUpload';
+                    uploadAssetsFile.generateRequest();
+                }
+            },
+            _dismissAlert: function () {
+                root = this;
+                root.addApiAlerts = false;
+                root.editApiAlerts = false;
+            },
+            _clearForm: function (formName) {
+                root = this;
+                if (formName == 'addAssetManagement') {
+                    document.querySelector('#addAssetManagement').reset();
+                }
+                else {
+                    document.querySelector('#editAssetManagement').reset();
+                }
+            },
+            _incrementalIndex: function (index) {
+                return Number(index) + 1
+            }
+        });
+    </script>
+
+</dom-module>
