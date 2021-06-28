@@ -1,0 +1,90 @@
+<script src="../../bower_components/highcharts/highstock.js"></script>
+<script src="../../bower_components/highcharts/modules/boost.js"></script>
+<script src="../../bower_components/highcharts/modules/exporting.js"></script>
+<script src="../../bower_components/highcharts/modules/export-data.js"></script>
+<script src="../../bower_components/highcharts/modules/offline-exporting.js"></script>
+<script>
+    Highcharts.setOptions({
+        boost: {
+            useGPUTranslations: true,
+            usePreallocated: true,
+            allowForce: true,
+        },
+        lang: {
+            decimalPoint: '.',
+            thousandsSep: ','
+        },
+        chart: {
+            animation: false,
+            zoomType: 'x'
+        },
+        rangeSelector: {
+            selected: 8,
+            inputEnabled: true,
+            buttons: [{
+                type: 'hour',
+                count: 0,
+                text: '1h'
+            }, {
+                type: 'day',
+                count: 0,
+                text: '1d'
+            }, {
+                type: 'week',
+                count: 0,
+                text: '1w'
+            }, {
+                type: 'month',
+                count: 1,
+                text: '1m'
+            }, {
+                type: 'month',
+                count: 3,
+                text: '3m'
+            }, {
+                type: 'month',
+                count: 6,
+                text: '6m'
+            }, {
+                type: 'ytd',
+                text: 'YTD'
+            }, {
+                type: 'year',
+                count: 1,
+                text: '1y'
+            }, {
+                type: 'all',
+                text: 'All'
+            }]
+        },
+        navigator: {
+            buttonOptions: {
+                enabled: true
+            },
+            enabled: true,
+            height: 60
+        },
+        exporting: {
+            allowHTML: true,
+            sourceWidth: 1280,
+            sourceHeight: 768,
+            scale: 1,
+            filename: Math.round(new Date().getTime() / 1000),
+            buttons: {
+                contextButton: {
+                    menuItems: [
+                        'downloadJPEG',
+                        'downloadPDF',
+                        'downloadPNG',
+                        'downloadCSV',
+                        'downloadXLS'
+                    ]
+                }
+            }
+
+        },
+        credits: {
+            enabled: false
+        }
+    });
+</script>

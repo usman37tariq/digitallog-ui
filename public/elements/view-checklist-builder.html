@@ -1,0 +1,144 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="checklist-builder/checklist-builder-list.html">
+<link rel="import" href="checklist-builder/checklist-builder-detail.html">
+
+<dom-module id="view-checklist-builder">
+
+    <template>
+
+        <style>
+            /* ::content .jstree .jstree-themeicon {
+                display: none !important;
+            } */
+
+            ::content .jstree-default .jstree-anchor {
+                line-height: 24px;
+                height: unset !important;
+                position: relative;
+                padding-bottom: 5px;
+            }
+
+            ::content .jstree-default .jstree-anchor:after {
+                content: attr(title);
+                display: block;
+                left: 100%;
+                bottom: 0;
+                margin-left: 5px;
+                font-size: 11px;
+                line-height: 11px;
+                text-align: left;
+                border-radius: 50px;
+                color: currentColor;
+                opacity: .65;
+            }
+             
+            .alert-danger {
+                word-wrap: break-word;
+                max-height: 300px;
+                overflow: auto;
+            }
+
+            /* ::content li.jstree-open{
+                border: 1px solid blue;
+            }
+
+            ::content li.jstree-closed {
+                border: 1px solid green;
+            }
+
+            ::content li.jstree-leaf {
+                border: 1px solid red;
+            } */
+
+            ::content .right-container {
+                background: #f8f9fa;
+                background: linear-gradient(135deg, #ffffff, #f8f9fa);
+
+            }
+        </style>
+
+        <global-loader>
+            <iron-ajax auto id="_checklistItems" url="/checklist" method="GET"
+                last-response="{{_response_checklistItems}}" on-response="_onResponse_checklistItems">
+            </iron-ajax>
+        </global-loader>
+
+
+        <main class="d-flex h-100 ml-lg-3 p-0 pl-lg-5">
+
+            <checklist-builder-list list-items='{{_response_checklistItems}}' disable-auto-select="true"
+                on-selected-item-changed="_updateDetails" sort-order="ascending">
+                <template is="dom-if" if="{{!itemData}}" restamp>
+                    <div id="detailFallback" class="detail-fallback align-items-center d-flex h-100">
+                        <div class="text-center text-muted w-100">Select an item from the list to see the details.
+                        </div>
+                    </div>
+                </template>
+                <template is="dom-if" if="{{itemData}}" restamp>
+                    <checklist-builder-detail item-data="{{itemData}}"></checklist-builder-detail>
+                </template>
+            </checklist-builder-list>
+
+        </main>
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "view-checklist-builder",
+            properties: {
+                itemData: {
+                    type: Object,
+                    value: function () {
+                        return null
+                    }
+                }
+            },
+            observers: [],
+            listeners: {
+                'refresh-list': '_refreshList'
+            },
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            attached: function () { },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+
+            ready: function () { },
+            _updateDetails: function (e) {
+                var selectedItem = e.target.listItems.find(function (item) {
+                    return item.id == e.detail.value;
+                });
+
+                this.set("itemData", selectedItem);
+            },
+            _refreshList: function (e) {
+                // console.log('_refreshList', e);
+                this.querySelector('#_checklistItems').generateRequest();
+            },
+            _onResponse_checklistItems: function (e) {
+                // console.log('_onResponse_checklistItems', e.detail.response);
+
+                var activeListItem = document.querySelector('li.list-group-item.active');
+                // console.log('activeListItem', activeListItem)
+
+                if (activeListItem && e.detail.response) {
+                    var selectedItem = e.detail.response.find(function (item) {
+                        return item.id == activeListItem.dataset.listid;
+                    });
+                    // console.log('selectedItem', selectedItem)
+
+                    this.set("itemData", selectedItem);
+                }
+
+            }
+        });
+    </script>
+
+</dom-module>

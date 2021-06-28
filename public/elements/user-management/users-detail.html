@@ -1,0 +1,172 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/global-var/global-var.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<dom-module id="users-detail">
+
+    <template>
+
+        <style>
+            .text-break {
+                word-break: break-word !important;
+            }
+        </style>
+
+
+        <div class="detail d-flex flex-column">
+
+            <div class="flex-grow-0 ">
+                <div class="p-4 bg-secondary text-light ">
+                    <div class="d-flex ">
+                        <div class="col-12 p-0 ">
+                            <div class="h5 m-0 text-break">User Information</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="flex-grow-1 overflow-auto">
+
+                <div class="d-flex flex-wrap">
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">User Name</div>
+                        <div class="text-break">{{itemData.user.userName}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Password</div>
+                        <div class="text-break">{{_asteriskCard(itemData.user.password)}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Email</div>
+                        <div class="text-break">{{itemData.user.email}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Mobile Number</div>
+                        <div class="text-break">{{itemData.user.phoneNumber}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Designation</div>
+                        <div class="text-break">{{itemData.user.designation}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Division</div>
+                        <div class="text-break">{{itemData.user.division}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Department</div>
+                        <div class="text-break">{{itemData.user.section.department.name}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Section</div>
+                        <div class="text-break">{{itemData.user.section.sectionName}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Address</div>
+                        <div class="text-break">{{itemData.user.address}}</div>
+                    </div>
+
+                    <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Date Added</div>
+                        <div class="text-break">{{_displayUserAddedDate(itemData.user.dateAdded)}}</div>
+                    </div>
+
+
+                    <!-- <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Status</div>
+
+                        <template is="dom-if" if="{{_isEqual(itemData.user.status, '0')}}">
+                            <div class="text-break">Inactive</div>
+                        </template>
+
+    <template is="dom-if" if="{{_isEqual(itemData.user.status, '1')}}">
+                            <div class="text-break">Active</div>
+                        </template>
+    </div> -->
+
+
+                    <!-- <div class="border-bottom col-md-6 my-2 px-4 pb-3">
+                        <div class="text-muted">Date Inactive</div>
+                        <div class="text-break">{{itemData.user.dateInactive}}</div>
+                    </div> -->
+
+                    <div class="border-bottom col-12 my-2 px-4 pb-3">
+                        <div class="text-muted">Role</div>
+                        <div class="text-break">{{itemData.user.userRole.roleName}}</div>
+                    </div>
+
+                    <div class="border-bottom col-12 my-2 px-4 pb-3">
+                        <div class="text-muted">Member of ({{itemData.groups.length}})</div>
+                        <template is="dom-repeat" items="{{itemData.groups}}">
+                            <div class="text-break py-1"><i class="fas fa-users fa-sm mr-2 text-muted"></i>{{item.name}}
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "users-detail",
+
+            properties: {
+
+            },
+
+            created: function () {
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            ready: function () {
+
+            },
+
+            attached: function () {
+
+            },
+
+            detached: function () {
+
+            },
+
+            attributeChanged: function (name, type) {
+
+            },
+
+            _isEqual: function (str1, str2) {
+                return str1 === str2
+            },
+
+            _displayUserAddedDate: function (date) {
+                var tempDateTime = new Date(date);
+                return moment(tempDateTime).format('DD-MM-YYYY hh:mm A');
+            },
+
+            _asteriskCard: function (text) {
+                if (text)
+                    return text.replace(/./g, "*");
+            }
+        });
+    </script>
+
+</dom-module>

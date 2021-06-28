@@ -1,0 +1,129 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html" />
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html" />
+<link rel="import" href="review-list.html" />
+<link rel="import" href="review-detail.html" />
+
+<dom-module id="view-review-checklist">
+    <template>
+        <style>
+            /* ::content .jstree .jstree-themeicon {
+                display: none !important;
+            } */
+
+            ::content .jstree-default .jstree-anchor {
+                line-height: 24px;
+                height: unset !important;
+                position: relative;
+                padding-bottom: 5px;
+            }
+
+            ::content .jstree-default .jstree-anchor:after {
+                content: attr(title);
+                display: block;
+                left: 100%;
+                bottom: 0;
+                margin-left: 5px;
+                font-size: 11px;
+                line-height: 11px;
+                text-align: left;
+                border-radius: 50px;
+                color: currentColor;
+                opacity: 0.65;
+            }
+
+            /* ::content li.jstree-open{
+                border: 1px solid blue;
+            }
+
+            ::content li.jstree-closed {
+                border: 1px solid green;
+            }
+
+            ::content li.jstree-leaf {
+                border: 1px solid red;
+            } */
+
+            ::content .right-container {
+                background: #f8f9fa;
+                background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            }
+        </style>
+
+        <global-loader>
+            <iron-ajax auto id="getChecklists" url="/checklist/data/approver/{{userId}}" method="GET"
+                last-response="{{_response_getChecklists}}" loading="{{_loading_getChecklists}}"
+                on-response="_onResponse_getChecklists">
+            </iron-ajax>
+        </global-loader>
+
+        <main class="d-flex h-100 ml-lg-3 p-0 pl-lg-5">
+            <review-list list-items="{{_response_getChecklists}}" disable-auto-select="true"
+                on-selected-item-changed="_updateDetails">
+                <template is="dom-if" if="{{!itemData}}" restamp>
+                    <div id="detailFallback" class="detail-fallback align-items-center d-flex h-100">
+                        <div class="text-center text-muted w-100">
+                            Select an item from the list to see the details.
+                        </div>
+                    </div>
+                </template>
+                <template is="dom-if" if="{{itemData}}" restamp>
+                    <review-detail item-data="{{itemData}}"></review-detail>
+                </template>
+            </review-list>
+        </main>
+    </template>
+
+    <script>
+        Polymer({
+            is: "view-review-checklist",
+            properties: {
+                itemData: {
+                    type: Object,
+                    value: function () {
+                        return null;
+                    }
+                },
+                userId: {
+                    value: function () {
+                        return window.user_id;
+                    }
+                }
+            },
+            observers: [],
+            listeners: {
+                "refresh-list": "_refreshList"
+            },
+            created: function () {
+                document.documentElement.classList.remove("in-progress");
+            },
+
+            attached: function () {
+                var _root = this;
+            },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) { },
+
+            ready: function () { },
+
+            _updateDetails: function (e) {
+                var selectedItem = e.target.listItems.find(function (item) {
+                    return item.checklistSchedule.checklistScheduleId == e.detail.value;
+                });
+
+                this.set("itemData", selectedItem);
+                // localStorage.setItem('selectedItem_templateBuilder', JSON.stringify(selectedItem));
+            },
+
+            _onResponse_getChecklists: function (e) { },
+
+            _refreshList: function (e) {
+                // console.log('_refreshList', e);
+                var _root = this;
+                _root.set("itemData", null);
+                _root.querySelector('#getChecklists').generateRequest();
+            },
+        });
+    </script>
+</dom-module>

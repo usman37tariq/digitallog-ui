@@ -1,0 +1,57 @@
+{
+  "entrypoint": "public/index.html",
+  "shell": "public/elements/app-shell.html",
+  "fragments": [
+    "public/elements/view-not-found.html",
+    "public/elements/view-data-visulization.html",
+    "public/elements/view-checklist-search.html",
+    "public/elements/view-hierarchy-builder.html",
+    "public/elements/view-asset-parameters-builder.html",
+    "public/elements/view-template-builder.html",
+    "public/elements/view-checklist-builder.html",
+    "public/elements/user-management/view-users.html",
+    "public/elements/user-management/view-groups.html",
+    "public/elements/user-management/view-departments.html",
+    "public/elements/user-management/view-sections.html",
+    "public/elements/user-management/view-roles.html",
+    "public/elements/data-collector/view-inbox.html",
+    "public/elements/data-collector/view-claimed-checklist.html",
+    "public/elements/data-collector/view-review-checklist.html",
+    "public/elements/user-history/user-history.html"
+  ],
+  "sources": [
+    "manifest.json",
+    "package.json",
+    "server/*.*",
+    "public/*.*",
+    "public/elements/**/*",
+    "public/images/**/*",
+    "public/bower_components/jstree/dist/themes/**/*"
+  ],
+  "extraDependencies": [
+    "public/login.css",
+    "public/bower_components/webcomponentsjs/webcomponents-lite.min.js",
+    "public/bower_components/bootstrap/dist/css/bootstrap.min.css",
+    "public/bower_components/fontawesome/css/all.min.css",
+    "public/bower_components/fontawesome/webfonts/*",
+    "public/bower_components/offline/offline.min.js"
+  ],
+  "builds": [
+    {
+      "name": "digital-log",
+      "addServiceWorker": true,
+      "insertPrefetchLinks": true,
+      "js": {
+        "compile": false,
+        "minify": true
+      },
+      "css": {
+        "minify": true
+      },
+      "html": {
+        "minify": true
+      },
+      "bundle": true
+    }
+  ]
+}

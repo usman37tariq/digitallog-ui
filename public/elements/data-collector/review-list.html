@@ -1,0 +1,564 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html" />
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html" />
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html" />
+<dom-module id="review-list">
+    <template>
+        <style>
+            :host {
+                display: block;
+                width: 100%;
+            }
+
+            .list-group-item.active {
+                background-color: #e9ecef;
+                border-color: #dee2e6;
+                color: #495057;
+            }
+
+            /* .item-actions{
+                display: none;
+            }
+
+            .list-group-item:hover .item-actions{
+                display: block;
+            } */
+
+            .list-group-item.active .text-black-50 {
+                color: rgba(255, 255, 255, 0.75) !important;
+            }
+
+            .list.constrained.detail-active {
+                display: none !important;
+            }
+
+            .detail.list-active {
+                display: none !important;
+            }
+
+            .back-link {
+                display: none !important;
+            }
+
+            .detail.constrained .back-link {
+                display: block !important;
+            }
+
+            .detail.constrained.list-active {
+                display: none !important;
+            }
+
+            ::content .detail.constrained .detail-container {
+                height: auto !important;
+            }
+
+            #sortBy,
+            #sortIcon {
+                cursor: pointer;
+            }
+
+            .new-template {
+                display: none;
+            }
+
+            .new-template.new-template-active {
+                display: block;
+            }
+
+            .text-break {
+                word-break: break-word !important;
+            }
+
+            ::content .label-icon{
+                width: 42px !important;
+                justify-content: center !important;
+            }
+        </style>
+
+        <div class="d-flex h-100">
+            <aside id="list"
+                class="list bg-light border-right col-12 col-lg-4 col-xl-3 flex-column left-container overflow-hidden d-flex">
+                <div class="border-bottom mx-n3 pb-3 pt-3 px-3 w-auto flex-grow-0">
+                    <div class="d-flex">
+                        <div class="flex-grow-1 font-weight-normal h5 m-0">
+                            Review checklist
+                        </div>
+                    </div>
+                    <div class="input-group mt-3">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text label-icon" for="revewChecklistSearch"><i
+                                    class="fas fa-search"></i></label>
+                        </div>
+                        <input type="search" id="revewChecklistSearch" class="form-control"
+                            placeholder="Type a keyword to filter" value="{{_query::input}}" />
+                    </div>
+
+
+                    <div class="input-group input-group-sm mt-2" title="User">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text label-icon border" for="filterUser"><i
+                                    class="fas fa-user"></i></label>
+                        </div>
+                        <select class="form-control border" id="filterUser" value="{{_filterUser::input}}">
+                            <option selected value="*">All</option>
+                            <template is="dom-repeat" items="{{_getUserList(listItems, _query)}}">
+                                <option value="{{item}}">{{item}}</option>
+                            </template>
+                        </select>
+                    </div>
+
+
+                    <div class="input-group input-group-sm mt-2" title="Date Range">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text label-icon border" for="reviewChecklistRange"><i
+                                    class="fas fa-clock"></i></label>
+                        </div>
+                        <input id="reviewChecklistRange" type="text" name="datetimes" class="form-control border"
+                            value$="{{_getDateRange(listItems, _filterUser, _query)}}" />
+                    </div>
+
+
+                    <div class="input-group input-group-sm mt-2" title="Sort By">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text label-icon border" for="sortBy"><i
+                                    class="fas fa-sort-amount-down"></i></label>
+                        </div>
+                        <select class="form-control border" id="sortBy" on-change="_sortByChange">
+                            <option value="name">Checklist Name</option>
+                            <option value="submitted_by">Submitted By</option>
+                            <option value="submitted_on" selected>Submitted On</option>
+                            <option value="due_date">Due Date</option>
+                        </select>
+                        <div class="input-group-append">
+                            <button class="btn border bg-white px-3" on-click="_reverseSort">
+                                <i id="sortIcon" class="fas fa-sort-alpha-up"></i>
+                            </button>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div class="list-container position-sticky mx-n3 overflow-auto h-100">
+                    <ul id="list__body" class="list-group list-group-flush" on-scroll="_updateClass">
+                        <template is="dom-repeat" items="{{listItems}}" as="listItem"
+                            filter="{{_computeFilter(_query, _filterUser, dateRangeSelection)}}"
+                            sort="{{_computeSort(sortBy,sortOrder)}}">
+                            <li id="{{listItem.checklistSchedule.checklistScheduleId}}"
+                                data-listid$="{{listItem.checklistSchedule.checklistScheduleId}}"
+                                class$="list-group-item list-group-item-action pointer {{_computeClass(selectedItem,listItem.checklistSchedule.checklistScheduleId)}}"
+                                on-click="_selectItem">
+                                <div class="d-flex">
+                                    <div class="col-12 p-0">
+                                        <div class="m-0 text-break"
+                                            title="{{llistItem.checklistSchedule.checklist.name}}">
+                                            {{listItem.checklistSchedule.checklist.name}}
+                                        </div>
+
+                                        <template is="dom-if" if="{{listItem.isRejected}}" restamp>
+                                            <div class="text-danger text-break" style="font-size: 11px;">
+                                                Status: returned
+                                            </div>
+                                        </template>
+
+                                        <div class="text-muted text-break" style="font-size: 11px;">
+                                            Submitted by:
+                                            {{listItem.submittedBy.userName}}
+                                        </div>
+
+                                        <div class="text-muted text-break" style="font-size: 11px;">
+                                            Submitted on:
+                                            {{_displayChecklistDate(listItem.submittedOnByUser)}}
+                                        </div>
+
+
+                                        <div class="text-muted text-break font-italic" style="font-size: 11px;">
+                                            Due date:
+                                            <template is="dom-if" if="{{listItem.isManual}}" restamp>
+                                                No due date
+                                            </template>
+                                            <template is="dom-if" if="{{!listItem.isManual}}" restamp>
+                                                {{_displayChecklistDate(listItem.checklistSchedule.endTimestamp)}}
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </aside>
+
+            <div id="detail" class="detail p-0 flex-grow-1 overflow-auto d-flex flex-column">
+                <div class="flex-grow-0">
+                    <div class="back-link">
+                        <span class="btn btn-sm ml-3 my-2" on-click="_goBackToList"><i
+                                class="fas fa-sort-alpha-left mr-2"></i>Back</span>
+                    </div>
+                </div>
+                <div class="flex-grow-1 overflow-auto">
+                    <content></content>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: "review-list",
+
+            behaviors: [Polymer.IronResizableBehavior],
+
+            listeners: {
+                "iron-resize": "_calculateBounds"
+            },
+
+            properties: {
+                /**
+                 * Array of items to include in the list. Each item in the array should be an object with:
+                 * - id (used for fetching the details view)
+                 * - title
+                 * - subtitle
+                 * - severity (one of "important", "error", "warning", or "information")
+                 * - date (optional, should be valid <a href="https://www.w3.org/TR/NOTE-datetime">8601 date strings</a>)
+                 */
+                listItems: {
+                    type: Array,
+                    notify: true
+                },
+                /**
+                 * ID of the selected item, for pulling up the details to display in the right side of the inbox view.
+                 */
+                selectedItem: {
+                    type: String,
+                    notify: true
+                },
+                /**
+                 * Search query used to filter the list.
+                 */
+                _query: {
+                    type: String,
+                    value: ""
+                },
+                /**
+                 * Property to sort the list by.
+                 */
+                sortBy: {
+                    type: String,
+                    value: "submitted_on"
+                },
+                /**
+                 * Sort order - ascending or descending.
+                 */
+                sortOrder: {
+                    type: String,
+                    value: "descending"
+                },
+                /**
+                 * By default, the first item in the list will be selected.
+                 * Set this flag to "true" to disable this default selection.
+                 */
+                disableAutoSelect: {
+                    type: Boolean,
+                    value: false
+                },
+                _filterUser: {
+                    value: '*'
+                }
+            },
+
+            created: function () {
+                document.documentElement.classList.remove("in-progress");
+            },
+
+            ready: function () { },
+
+            attached: function () {
+
+            },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) {
+                console.log(name, type)
+            },
+
+            _getUserList: function (list, query) {
+                /* if (query !== '') {
+                    list = _.filter(list, item => item.checklistSchedule.checklist.name.toLowerCase().indexOf(query.toLowerCase()) !== -1 );
+                } */
+
+                return _.uniq(_.map(list, 'submittedBy.userName'))
+            },
+
+            _getDateRange: function (list, user, query) {
+                var _root = this;
+
+                /* if (query !== '') {
+                    list = _.filter(list, item => item.checklistSchedule.checklist.name.toLowerCase().indexOf(query.toLowerCase()) !== -1 );
+                    this.set('_filterUser', '*');
+                } */
+
+                if (user !== '*') {
+                    list = _.filter(list, item => item.submittedBy.userName === user);
+                }
+
+                var listDates = _.uniq(_.map(list, 'submittedOnByUser'));
+                _root.dateRangeSelection = {
+                    'start': moment(_.min(listDates)).utc(),
+                    'end': moment(_.max(listDates)).utc()
+                }
+
+
+                var dateFormat = 'YYYY-MM-DD';
+                var invalid_dates = listDates.map(date => moment(date).format(dateFormat));
+
+                _root._daterangepicker = $(_root.querySelector('input[name="datetimes"]')).daterangepicker({
+                    timePicker: true,
+                    showDropdowns: true,
+                    timePicker24Hour: false,
+                    timePickerSeconds: false,
+                    alwaysShowCalendars: true,
+                    linkedCalendars: true,
+                    minDate: moment(_.min(listDates)).utc().startOf('day'),
+                    maxDate: moment(_.max(listDates)).utc().endOf('day'),
+                    opens: "right",
+                    isInvalidDate: function (date) {
+                        return !(invalid_dates.indexOf(date.format(dateFormat)) > -1);
+                    },
+                    isCustomDate: function (date) {
+                        if (!!(invalid_dates.indexOf(date.format(dateFormat)) > -1)) {
+                            return 'font-weight-bolder'
+                        }
+                    },
+                    ranges: {
+                        'Today': [moment().utc().startOf('day'), moment().utc()],
+                        'Last 24 Hours': [moment().utc().subtract(1, 'days'), moment().utc()],
+                        'Last 7 Days': [moment().utc().subtract(6, 'days').startOf('day'), moment().utc().endOf('day')],
+                        'Last 30 Days': [moment().utc().subtract(29, 'days').startOf('day'), moment().utc().endOf('day')],
+                        'This Month': [moment().utc().startOf('month').startOf('day'), moment().utc().endOf('month').endOf('day')]
+                    },
+                    startDate: moment(_.min(listDates)).utc().startOf('day'),
+                    endDate: moment(_.max(listDates)).utc().endOf('day'),
+
+                    locale: {
+                        format: 'DD-MM-YYYY hh:mm A',
+                        applyLabel: "Confirm Dates",
+                    },
+                }, function (start, end, label) {
+                    //update start and end range on change
+                    _root.dateRangeSelection = {
+                        'start': moment(start).utc().startOf('second').valueOf(),
+                        'end': moment(end).utc().startOf('second').valueOf()
+                    }
+                });
+            },
+
+            /**
+             * Figures out whether the item is currently selected.
+             */
+            _computeClass: function (selectedId, id) {
+                return selectedId && String(selectedId) === String(id) ? "active" : "";
+            },
+
+            /**
+             * Adds visual style to the currently selected item and triggers display of the details.
+             */
+            _selectItem: function (evt) {
+                root = this;
+                // var seclectedTagId = evt.currentTarget.id;
+                var seclectedTagId = evt.currentTarget.dataset.listid;
+
+                // var otherItems = Polymer.dom(this.root).querySelectorAll('.active');
+                // for (var i = 0; i < otherItems.length; i++) {
+                //     // otherItems[i].classList.remove("active");
+                // };
+                document.getElementById(seclectedTagId).classList.add("active");
+                this.selectedItem = document.getElementById(seclectedTagId).id;
+
+                this.toggleClass("detail-active", true, this.$.list);
+                this.toggleClass("list-active", false, this.$.detail);
+            },
+            /**
+             * When the window or any parent container is resized, need to recalculate the bounds
+             * of the px-inbox and react accordingly - in constrained situations, the list and detail
+             * will not be displayed simultaneously but will toggle back and forth instead.
+             */
+            _calculateBounds: function (evt) {
+                this.debounce(
+                    "resize",
+                    function () {
+                        if (this.getBoundingClientRect().width < 990) {
+                            this.toggleClass("constrained", true, this.$.list);
+                            this.toggleClass("constrained", true, this.$.detail);
+
+                            this.toggleClass("detail-active", false, this.$.list);
+                            this.toggleClass("list-active", true, this.$.detail);
+                        } else {
+                            this.toggleClass("constrained", false, this.$.list);
+                            this.toggleClass("constrained", false, this.$.detail);
+
+                            this.toggleClass("detail-active", true, this.$.list);
+                            this.toggleClass("list-active", false, this.$.detail);
+                        }
+                    },
+                    300
+                );
+            },
+            /**
+             * For small form factors, these classes are toggled in order to toggle back and forth
+             * between the list and detail views.
+             */
+            _goBackToList: function (evt) {
+                this.toggleClass("detail-active", false, this.$.list);
+                this.toggleClass("list-active", true, this.$.detail);
+            },
+            /**
+             * Searches through the list titles and subtitles and filters based on the query.
+             */
+            _computeFilter: function (query, _filterUser, dateRangeSelection) {
+                var _root = this;
+
+                query = query.toLowerCase();
+
+                return function (listItem) {
+                    var nameFound = listItem.checklistSchedule.checklist.name.toLowerCase().indexOf(query) !== -1;
+                    var dateFound = moment(listItem.submittedOnByUser).utc().isBetween(dateRangeSelection.start, dateRangeSelection.end, null, '[]');
+
+                    if (_filterUser !== '*') {
+                        var userName = listItem.submittedBy.userName;
+                        return nameFound && dateFound && userName === _filterUser
+                    }
+
+                    return nameFound && dateFound
+                };
+
+            },
+            /**
+             * Sort function for the array of list items.
+             */
+            _computeSort: function (sortBy, sortOrder) {
+                // console.log('_computeSort', sortBy, sortOrder)
+                var _root = this;
+                sortBy = sortBy ? sortBy.toLowerCase().replace(/\s+/g, "") : "";
+                var asc = sortOrder === "ascending";
+
+                if (sortBy === 'name') {
+                    if (asc) {
+                        return function (a, b) {
+                            var _a = a.checklistSchedule.checklist.name;
+                            var _b = b.checklistSchedule.checklist.name;
+                            return _a < _b ? -1 : _a > _b ? 1 : 0;
+                        };
+                    } else if (!asc) {
+                        return function (b, a) {
+                            var _a = a.checklistSchedule.checklist.name;
+                            var _b = b.checklistSchedule.checklist.name;
+                            return _a < _b ? -1 : _a > _b ? 1 : -1;
+                        };
+                    }
+                }
+
+
+                if (sortBy === 'submitted_by') {
+                    if (asc) {
+                        return function (a, b) {
+                            var _a = a.submittedBy.userName;
+                            var _b = b.submittedBy.userName;
+                            return _a < _b ? -1 : _a > _b ? 1 : 0;
+                        };
+                    } else if (!asc) {
+                        return function (b, a) {
+                            var _a = a.submittedBy.userName;
+                            var _b = b.submittedBy.userName;
+                            return _a < _b ? -1 : _a > _b ? 1 : -1;
+                        };
+                    }
+                }
+
+
+                if (sortBy === 'submitted_on') {
+                    if (asc) {
+                        return function (a, b) {
+                            var _a = a.submittedOnByUser;
+                            var _b = b.submittedOnByUser;
+                            return _a < _b ? -1 : _a > _b ? 1 : 0;
+                        };
+                    } else if (!asc) {
+                        return function (b, a) {
+                            var _a = a.submittedOnByUser;
+                            var _b = b.submittedOnByUser;
+                            return _a < _b ? -1 : _a > _b ? 1 : -1;
+                        };
+                    }
+                }
+
+
+                if (sortBy === 'due_date') {
+                    if (asc) {
+                        return function (a, b) {
+                            var _a = a.checklistSchedule.endTimestamp;
+                            var _b = b.checklistSchedule.endTimestamp;
+                            return _a < _b ? -1 : _a > _b ? 1 : 0;
+                        };
+                    } else if (!asc) {
+                        return function (b, a) {
+                            var _a = a.checklistSchedule.endTimestamp;
+                            var _b = b.checklistSchedule.endTimestamp;
+                            return _a < _b ? -1 : _a > _b ? 1 : -1;
+                        };
+                    }
+                }
+
+                if (asc) {
+                    return function (a, b) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : 0;
+                    }
+                } else if (!asc) {
+                    return function (b, a) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : -1;
+                    }
+                }
+
+            },
+            _reverseSort: function () {
+                if (this.sortOrder === "ascending") {
+                    this.sortOrder = "descending";
+                    this.$.sortIcon.classList.value = "fas fa-sort-alpha-up";
+                } else if (this.sortOrder === "descending") {
+                    this.sortOrder = "ascending";
+                    this.$.sortIcon.classList.value = "fas fa-sort-alpha-down";
+                }
+            },
+            _updateClass: function () {
+                this.debounce(
+                    "_updateClass",
+                    function () {
+                        if (this.$.list__body.scrollTop > 0) {
+                            this.toggleClass(
+                                "shadow-component",
+                                true,
+                                Polymer.dom(this.root).querySelector(".list__header")
+                            );
+                        } else {
+                            this.toggleClass(
+                                "shadow-component",
+                                false,
+                                Polymer.dom(this.root).querySelector(".list__header")
+                            );
+                        }
+                    },
+                    50
+                );
+            },
+
+            _sortByChange: function (e) {
+                var _root = this;
+                _root.set('sortBy', e.target.value.toLowerCase().replace(/\s+/g, ''))
+            },
+
+            _displayChecklistDate: function (date) {
+                return moment(date).format('DD-MM-YYYY hh:mm A');
+            }
+        });
+    </script>
+</dom-module>

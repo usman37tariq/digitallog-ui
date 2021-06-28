@@ -1,0 +1,1367 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html" />
+<link rel="import" href="../../bower_components/global-var/global-var.html">
+<dom-module id="users-list">
+
+    <template>
+
+        <style>
+            .field-icon {
+                float: right;
+                margin-right: 25px;
+                margin-top: -25px;
+                position: relative;
+                z-index: 2;
+            }
+
+            .field-info {
+                float: right;
+                margin-right: 5px;
+                margin-top: -29px;
+                position: relative;
+                z-index: 2;
+            }
+
+            :host {
+                display: block;
+                width: 100%;
+            }
+
+            .list-group-item.active {
+                background-color: #e9ecef;
+                border-color: #dee2e6;
+                color: #495057;
+            }
+
+            .alert-danger {
+                word-wrap: break-word;
+                max-height: 300px;
+                overflow: auto;
+            }
+
+            /* .item-actions{
+                display: none;
+            }
+
+            .list-group-item:hover .item-actions{
+                display: block;
+            } */
+
+            .list-group-item.active .text-black-50 {
+                color: rgba(255, 255, 255, .75) !important;
+            }
+
+
+            .list.constrained.detail-active {
+                display: none !important;
+            }
+
+            .detail.list-active {
+                display: none !important;
+            }
+
+            .back-link {
+                display: none !important;
+            }
+
+            .detail.constrained .back-link {
+                display: block !important
+            }
+
+            .detail.constrained.list-active {
+                display: none !important;
+            }
+
+            ::content .detail.constrained .detail-container {
+                height: auto !important;
+            }
+
+            ::content .filters-container {
+                overflow-y: auto;
+                background: #dee2e6;
+            }
+
+            #sortBy,
+            #sortIcon {
+                cursor: pointer;
+            }
+
+            .text-break {
+                word-break: break-word !important;
+            }
+        </style>
+
+
+        <global-loader>
+            <iron-ajax id="addUser" method="POST" url="/users" content-type="application/json"
+                on-response="_onResponse_addUser">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax id="editUser" method="PUT" url="/users" content-type="application/json"
+                on-response="_onResponse_editUser">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax id="deleteUser" method="DELETE" url="/users" on-response="_onResponse_deleteUser">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax auto id="getGroups" url="/groups" method="GET" last-response="{{_response_getGroups}}"
+                loading="{{_loading_getGroups}}">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax auto id="_departmentList" url="/department" method="GET"
+                last-response="{{_response_departmentList}}" on-response="_onResponse_departmentList">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax id="_departmentSectionsItems" url$="/department/sections/{{selectedDepartment}}" method="GET"
+                last-response="{{_response_departmentSectionsItems}}" loading="{{_loading_departmentSectionsItems}}"
+                on-response="_onResponse_departmentSectionsItems">
+            </iron-ajax>
+        </global-loader>
+
+
+
+        <global-loader>
+            <iron-ajax auto id="_rolesList" url="/roles" method="GET" last-response="{{_response_rolesList}}"
+                loading="{{_loading_rolesList}}" on-response="_onResponse_rolesList">
+            </iron-ajax>
+        </global-loader>
+
+
+
+
+
+
+
+        <div class="d-flex h-100">
+
+
+
+
+
+
+
+            <aside id="list"
+                class="list bg-light border-right col-12 col-lg-4 col-xl-3 flex-column left-container overflow-hidden d-flex">
+
+
+                <div class="border-bottom mx-n3 pb-3 pt-3 px-3 w-auto flex-grow-0">
+                    <div class="d-flex">
+                        <div class="flex-grow-1 font-weight-normal h5 m-0">Users</div>
+                        <button on-click="_addUser" class="flex-grow-0 btn btn-dark btn-sm my-n1" title="Add User"><i
+                                class="fas fa-plus mr-1"></i> Add User</button>
+                    </div>
+                    <div class="input-group  mt-3">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text" for="jstreeSearch"><i class="fas fa-search"></i></label>
+                        </div>
+                        <input type="search" id="jstreeSearch" class="form-control"
+                            placeholder="Type a keyword to filter" value="{{_query::input}}">
+                    </div>
+                    <!-- <div class=" form-group d-flex m-0 mt-2 mb-n2 text-black-50">
+                        <label for="sortBy" class="col-form-label mr-2 form-control-sm">Sort by: </label>
+                        <div class="flex-grow-1">
+                            <select class="form-control form-control-plaintext text-black-50 form-control-sm"
+                                id="sortBy" on-change="_sortByChange">
+                                <option value="name">Name</option>
+                                <option value="designation">Designation</option>
+                            </select>
+                        </div>
+                        <div class="ml-1 col-form-label form-control-sm" on-click="_reverseSort">
+                            <i id="sortIcon" class="fas fa-arrow-down"></i>
+                        </div>
+                    </div> -->
+
+                </div>
+
+
+
+
+                <div class="list-container position-sticky mx-n3 overflow-auto h-100">
+                    <ul id="list__body" class="list-group list-group-flush" on-scroll="_updateClass">
+                        <template is="dom-repeat" items="{{listItems}}" as="listItem"
+                            filter="{{_computeFilter(_query)}}" sort="{{_computeSort(sortBy,sortOrder)}}">
+                            <li id="{{listItem.user.id}}" data-listid$="{{listItem.user.id}}"
+                                class$="list-group-item list-group-item-action pointer {{_computeClass(selectedItem,listItem.user.id)}}"
+                                on-click="_selectItem">
+
+                                <div class="d-flex">
+                                    <div class="col-10 p-0">
+                                        <div class="m-0 text-break" title="{{listItem.user.userName}}">
+                                            {{listItem.user.userName}}
+                                        </div>
+                                        <div class="text-muted text-break" title="{{listItem.user.designation}}"
+                                            style="font-size: 11px;">{{listItem.user.designation}}</div>
+                                    </div>
+                                    <div class="align-items-center col-2 d-flex item-actions justify-content-end p-0">
+                                        <button data-listid$="{{listItem.user.id}}" on-click="_editUser"
+                                            class="btn btn-outline-dark btn-sm mt-n1 border-0" title="Edit User"><i
+                                                class="fas fa-sm fa-pen"></i></button>
+
+                                        <template is="dom-if" if="{{!_isEqual(userId, listItem.user.id)}}">
+                                            <button data-listid$="{{listItem.user.id}}" on-click="_deleteUser"
+                                                class="btn btn-outline-danger btn-sm mt-n1 border-0"
+                                                title="Delete User"><i class="fas fa-sm fa-trash"></i></button>
+                                        </template>
+                                    </div>
+                                </div>
+
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+            </aside>
+
+
+
+
+
+
+
+            <div id="detail" class="detail p-0 flex-grow-1 overflow-auto d-flex flex-column">
+                <div class="flex-grow-0">
+                    <div class="back-link">
+                        <span class="btn btn-sm ml-3 my-2" on-click="_goBackToList"><i
+                                class="fas fa-arrow-left mr-2"></i>Back</span>
+                    </div>
+                </div>
+                <div class="flex-grow-1 overflow-auto">
+                    <content></content>
+                </div>
+            </div>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <!-- Modal - addUser -->
+        <div class="modal" id="_modal_addUser" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add User</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_addUser">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <form id="_form_addUser">
+                        <div class="modal-body d-flex flex-wrap">
+                            <div class="form-group col-sm-6">
+                                <label for="_userName_addUser" class="text-muted m-0">User Name <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_userName_addUser"
+                                    pattern="^$|^[^\s]+(\s+[^\s]+)*$"
+                                    title="Not allowed whitespace at begining/end of name" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_password_addUser" class="text-muted m-0">Password <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control " id="_passwordOption_addUser"
+                                    on-click="_changePasswordOption" required>
+                                    <option value="manual">Let the person set password</option>
+                                    <option value="auto">Set Password</option>
+                                </select>
+                                <template is="dom-if" if="{{addPasswordOption}}" restamp>
+                                    <input required maxlength="100" type="password" class="form-control mt-2"
+                                        pattern="^(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@!#$%^&+=]).*$"
+                                        id="_password_addUser">
+                                    <span on-click="_togglePassword" id="password-field-add"
+                                        class="fa fa-fw fa-eye field-icon  toggle-password"></span>
+                                    <a tabindex="0" data-toggle="popover" data-trigger="focus" data-html="true"
+                                        class="field-info" data-content="
+                                       <strong> Password complexity required:</strong>
+                                       <ul>
+                                         <li>Password length must be minimum 8 characters or greater.</li>
+                                        <li>Password must not be the same as the user account name.</li>
+                                            <li>
+                                                Password must contain the following:
+                                                <ol>
+                                                    <li>At least one Uppercase letter (A through Z).</li>
+                                                    <li>At least one Lowercase letter (a through z).</li>
+                                                    <li>At least one number (0 through 9).</li>
+                                                    <li>At least one of these symbols (e.g. !,@,&,%,#).</li>
+                                                </ol>
+                                            </li>
+                                       </ul>
+                                        <strong><small> EXAMPLE PASSWORD:	Password@123</small></strong>
+                                        "><i class="fa fa-info-circle " aria-hidden="true"></i></a>
+                                </template>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_email_addUser" class="text-muted m-0">Email <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="email" class="form-control" id="_email_addUser" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_mobileNum_addUser" class="text-muted m-0">Mobile Number<span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="15" type="tel" class="form-control" id="_mobileNum_addUser"
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,'')" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_designation_addUser" class="text-muted m-0">Designation <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_designation_addUser"
+                                    required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_division_addUser" class="text-muted m-0">Division <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_division_addUser" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_department_addUser" class="text-muted m-0">Department <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_department_addUser" on-change="_selectedDepartment"
+                                    required>
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{_response_departmentList}}">
+                                        <option value="{{item.id}}">{{item.name}}</option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_section_addUser" class="text-muted m-0">Section <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_section_addUser" required>
+                                    <option disabled selected></option>
+                                    <template is="dom-if" if="{{selectedDepartment}}" restamp>
+                                        <template is="dom-repeat" items="{{_response_departmentSectionsItems}}">
+                                            <option value="{{item.sectionId}}">{{item.sectionName}}</option>
+                                        </template>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="form-group col-sm-12">
+                                <label for="_roles_addUser" class="text-muted m-0">Role <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_roles_addUser" required>
+                                    <option disabled selected></option>
+                                    <template is="dom-if" if="{{!_loading_rolesList}}" restamp>
+                                        <template is="dom-repeat" items="{{_response_rolesList}}">
+                                            <option value="{{item.role.roleId}}">{{item.role.roleName}}</option>
+                                        </template>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <div class="form-group col-sm-12">
+                                <label for="_address_addUser" class="text-muted m-0">Address <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_address_addUser" required>
+                            </div>
+
+                            <!-- <div class="form-group col-sm-6">
+                                <label for="_activeStatus_addUser" class="text-muted m-0">Status <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_activeStatus_addUser" required>
+                                    <option value="0">Inactive</option>
+                                    <option value="1">Active</option>
+                                </select>
+                            </div> -->
+
+                            <!-- <div class="form-group col-sm-12">
+                                <label for="_groups_addUser" class="text-muted m-0">Member of</label>
+
+                                <div class="border rounded p-2 overflow-auto" style="height: 150px;">
+                                    <template is="dom-repeat" items="{{_response_getGroups}}">
+                                        <div class="form-check p-0">
+                                            <label class="align-items-center btn-light d-flex rounded border px-2 py-1"
+                                                for$="_group{{index}}_addUser">
+                                                <input class="flex-grow-0" type="checkbox" id$="_group{{index}}_addUser"
+                                                    value="{{item.group.id}}" name="_groups_addUser">
+                                                <div class="flex-grow-1 pl-2">{{item.group.name}}</div>
+                                            </label>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div> -->
+                        </div>
+
+
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_addUser}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_addUser}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_addUser">Cancel</button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_addUser"><i
+                                        class="fas fa-plus mr-1"></i> Add</button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+        <!-- Modal - editUser -->
+        <div class="modal" id="_modal_editUser" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit User</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_editUser">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <form id="_form_editUser">
+                        <div class="modal-body d-flex flex-wrap">
+                            <div class="form-group col-sm-6">
+                                <label for="_userName_editUser" class="text-muted m-0">User Name <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_userName_editUser"
+                                    pattern="^$|^[^\s]+(\s+[^\s]+)*$"
+                                    title="Not allowed whitespace at begining/end of name"
+                                    value="{{selectedListItem.user.userName}}" name="{{selectedListItem.user.id}}"
+                                    required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_password_editUser" class="text-muted m-0">Password</label>
+                                <!-- <select class="form-control" id="_passwordOption_editUser"
+                                    on-click="_changePasswordOption" required>
+                                    <option value="auto">Set Password</option>
+                                    <option value="manual">Let the person set password</option>
+
+                                </select> -->
+                                <!-- <template is="dom-if" if="{{editPasswordOption}}" restamp> -->
+                                <input maxlength="100" type="password" class="form-control" id="_password_editUser"
+                                    value="{{selectedListItem.user.password}}" on-input="_passwordChange">
+                                <span on-click="_togglePassword" id="password-field-edit"
+                                    class="fa fa-fw fa-eye field-icon  toggle-password"></span>
+                                <a tabindex="0" data-toggle="popover" data-trigger="focus" data-html="true"
+                                    class="field-info" data-content="
+                                        <strong> Password complexity required:</strong>
+                                        <ul>
+                                            <li>Password length must be minimum 8 characters or greater.</li>
+                                        <li>Password must not be the same as the user account name.</li>
+                                            <li>
+                                                Password must contain the following:
+                                                <ol>
+                                                    <li>At least one Uppercase letter (A through Z).</li>
+                                                    <li>At least one Lowercase letter (a through z).</li>
+                                                    <li>At least one number (0 through 9).</li>
+                                                    <li>At least one of these symbols (e.g. !,@,&,%,#).</li>
+                                                </ol>
+                                            </li>
+                                        </ul>
+                                        <strong><small> EXAMPLE PASSWORD:	Password@123</small></strong>">
+                                    <i class="fa fa-info-circle " aria-hidden="true"></i></a>
+                                <!-- </template> -->
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_email_editUser" class="text-muted m-0">Email <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="email" class="form-control" id="_email_editUser"
+                                    value="{{selectedListItem.user.email}}" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_mobileNum_editUser" class="text-muted m-0">Mobile Number <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="15" type="tel" class="form-control" id="_mobileNum_editUser"
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                                    value="{{selectedListItem.user.phoneNumber}}" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_designation_editUser" class="text-muted m-0">Designation <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_designation_editUser"
+                                    value="{{selectedListItem.user.designation}}" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_division_editUser" class="text-muted m-0">Division <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_division_editUser"
+                                    value="{{selectedListItem.user.division}}" required>
+
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_department_editUser" class="text-muted m-0">Department <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_department_editUser" on-change="_selectedDepartment"
+                                    required>
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{_response_departmentList}}">
+                                        <option value="{{item.id}}"
+                                            selected="{{_isEqual(item.id, selectedListItem.user.section.department.id)}}">
+                                            {{item.name}}</option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="_section_editUser" class="text-muted m-0">Section <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_section_editUser" required>
+                                    <option disabled selected></option>
+                                    <template is="dom-if" if="{{selectedDepartment}}" restamp>
+                                        <template is="dom-repeat" items="{{_response_departmentSectionsItems}}">
+                                            <option value="{{item.sectionId}}"
+                                                selected="{{_isEqual(item.sectionId, selectedListItem.user.section.sectionId)}}">
+                                                {{item.sectionName}}</option>
+                                        </template>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="form-group col-sm-12">
+                                <label for="_address_editUser" class="text-muted m-0">Address <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_address_editUser"
+                                    value="{{selectedListItem.user.address}}" required>
+
+                            </div>
+                            <div class="form-group col-sm-12">
+                                <label for="_roles_editUser" class="text-muted m-0">Role <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_roles_editUser" required>
+                                    <option disabled selected></option>
+                                    <template is="dom-if" if="{{!_loading_rolesList}}" restamp>
+                                        <template is="dom-repeat" items="{{_response_rolesList}}">
+                                            <option value="{{item.role.roleId}}"
+                                                selected="{{_isEqual(item.role.roleId, selectedListItem.user.userRole.roleId)}}">
+                                                {{item.role.roleName}}</option>
+                                        </template>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- <div class="form-group col-sm-6">
+                                <label for="_activeStatus_editUser" class="text-muted m-0">Status <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_activeStatus_editUser" required>
+                                    <option value="0" selected="{{_isEqual('0', selectedListItem.user.status)}}">
+                                        Inactive
+                                    </option>
+                                    <option value="1" selected="{{_isEqual('1', selectedListItem.user.status)}}">
+                                        Active
+                                    </option>
+                                </select>
+                            </div> -->
+
+                            <!-- <div class="form-group col-sm-12">
+                                <label for="_groups_editUser" class="text-muted m-0">Member of</label>
+
+                                <div class="border rounded p-2 overflow-auto" style="height: 150px;">
+                                    <template is="dom-repeat" items="{{_response_getGroups}}">
+                                        <div class="form-check p-0">
+                                            <label class="align-items-center btn-light d-flex rounded border px-2 py-1"
+                                                for$="_group{{index}}_editUser">
+                                                <input class="flex-grow-0" type="checkbox"
+                                                    id$="_group{{index}}_editUser" value="{{item.group.id}}"
+                                                    name="_groups_editUser"
+                                                    checked="{{_markChecked(item.group.id, selectedListItem.groups)}}">
+                                                <div class="flex-grow-1 pl-2">{{item.group.name}}</div>
+                                            </label>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div> -->
+                        </div>
+
+
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_editUser}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_editUser}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_editUser">Cancel</button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_editUser"><i
+                                        class="fas fa-save mr-1"></i> Save</button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+        <!-- Modal - deleteUser -->
+        <div class="modal" id="_modal_deleteUser" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete User</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_deleteUser">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <div class="modal-body">
+                        Are you sure, you want to delete?
+                    </div>
+
+                    <div class="modal-footer flex-column align-items-stretch">
+                        <div>
+                            <template is="dom-if" if="{{_status_deleteUser}}">
+                                <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                    {{_status_deleteUser}}
+                                </div>
+                            </template>
+                        </div>
+                        <div class="text-right">
+                            <button type="button" class="btn btn-light" data-dismiss="modal"
+                                on-click="_cancel_deleteUser">Cancel</button>
+                            <button type="submit" class="btn btn-danger" on-click="_confirm_deleteUser"><i
+                                    class="fas fa-trash mr-1"></i> Delete</button>
+                        </div>
+                    </div>
+
+                    <!-- <div class="modal-footer align-items-stretch">
+                        <div class="flex-grow-0">
+                            <button type="button" class="btn btn-light" data-dismiss="modal"
+                                on-click="_cancel_deleteUser">Cancel</button>
+                            <button class="btn btn-danger" on-click="_confirm_deleteUser"><i
+                                    class="fas fa-trash mr-1"></i> Delete</button>
+                        </div>
+                    </div> -->
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "users-list",
+
+            behaviors: [
+                Polymer.IronResizableBehavior
+            ],
+
+            listeners: {
+                "iron-resize": "_calculateBounds"
+            },
+
+            properties: {
+                /**
+                 * Array of items to include in the list. Each item in the array should be an object with:
+                 * - id (used for fetching the details view)
+                 * - title
+                 * - subtitle
+                 * - severity (one of "important", "error", "warning", or "information")
+                 * - date (optional, should be valid <a href="https://www.w3.org/TR/NOTE-datetime">8601 date strings</a>)
+                 */
+                listItems: {
+                    type: Array,
+                    notify: true
+                },
+                /**
+                 * ID of the selected item, for pulling up the details to display in the right side of the inbox view.
+                 */
+                selectedItem: {
+                    type: String,
+                    notify: true
+                },
+                /**
+                 * Search query used to filter the list.
+                 */
+                _query: {
+                    type: String
+                },
+                /**
+                 * Property to sort the list by.
+                 */
+                sortBy: {
+                    type: String,
+                    value: "title"
+                },
+                /**
+                 * Sort order - ascending or descending.
+                 */
+                sortOrder: {
+                    type: String,
+                    value: "ascending"
+                },
+                /**
+                 * By default, the first item in the list will be selected.
+                 * Set this flag to "true" to disable this default selection.
+                 */
+                disableAutoSelect: {
+                    type: Boolean,
+                    value: false
+                },
+                userId: {
+                    value: function () {
+                        return window.user_id;
+                    }
+                },
+                selectedUserPassword: {
+                    type: String,
+                }
+            },
+
+            created: function () {
+
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            ready: function () {
+
+            },
+
+            attached: function () {
+
+            },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) {
+
+            },
+
+            _togglePassword: function (e) {
+                if (e.currentTarget.id === "password-field-add") {
+                    $('#password-field-add').toggleClass("fa-eye fa-eye-slash");
+                    var x = document.getElementById("_password_addUser");
+                    if (x.type === "password") {
+                        x.type = "text";
+                    } else {
+                        x.type = "password";
+                    }
+                }
+                else {
+                    $('#password-field-edit').toggleClass("fa-eye fa-eye-slash");
+                    var x = document.getElementById("_password_editUser");
+                    if (x.type === "password") {
+                        x.type = "text";
+                    } else {
+                        x.type = "password";
+                    }
+                }
+            },
+
+            _changePasswordOption: function (e) {
+                var root = this;
+                // console.log(e.currentTarget.value)
+                if (e.currentTarget.id === "_passwordOption_addUser") {
+                    if (e.currentTarget.value === 'auto') {
+                        root.addPasswordOption = true;
+                        root.editPasswordOption = false;
+                        root.async(function () {
+                            $('[data-toggle="popover"]').popover();
+                            $('.popover-dismiss').popover({ trigger: 'focus' });
+                        })
+
+                    }
+                    else {
+                        root.addPasswordOption = false;
+                        root.editPasswordOption = true;
+                    }
+                }
+
+                // if (e.currentTarget.id === "_passwordOption_editUser") {
+                //     if (e.currentTarget.value === 'manual') {
+                //         root.editPasswordOption = true;
+                //         root.addPasswordOption = false;
+                //         root.async(function () {
+                //             $('[data-toggle="popover"]').popover();
+                //             $('.popover-dismiss').popover({ trigger: 'focus' });
+                //         })
+                //     }
+                //     else {
+                //         root.editPasswordOption = false;
+                //         root.addPasswordOption = true;
+                //     }
+                // }
+            },
+
+            _passwordChange: function (e) {
+                var root = this;
+                var inputValue = document.getElementById('_password_editUser').value;
+                if (root.selectedUserPassword)
+                    if (root.selectedUserPassword === inputValue) {
+                        document.querySelector('#_password_editUser').removeAttribute('pattern');
+                    }
+                    else {
+                        document.querySelector('#_password_editUser').pattern = '^(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@!#$%^&+=]).*$';
+                    }
+            },
+
+            /**
+             * Figures out whether the item is currently selected.
+             */
+            _computeClass: function (selectedId, id) {
+                return (selectedId && String(selectedId) === String(id)) ? 'active' : '';
+            },
+
+            /**
+             * Adds visual style to the currently selected item and triggers display of the details.
+             */
+            _selectItem: function (evt) {
+                var _root = this;
+                // var seclectedTagId = evt.currentTarget.id;
+                var seclectedTagId = evt.currentTarget.dataset.listid;
+
+                // var otherItems = Polymer.dom(this.root).querySelectorAll('.active');
+                // for (var i = 0; i < otherItems.length; i++) {
+                //     // otherItems[i].classList.remove("active");
+                // };
+                document.getElementById(seclectedTagId).classList.add("active");
+                _root.selectedItem = document.getElementById(seclectedTagId).id;
+
+                _root.toggleClass('detail-active', true, _root.$.list);
+                _root.toggleClass('list-active', false, _root.$.detail);
+
+            },
+            /**
+             * When the window or any parent container is resized, need to recalculate the bounds
+             * of the px-inbox and react accordingly - in constrained situations, the list and detail
+             * will not be displayed simultaneously but will toggle back and forth instead.
+             */
+            _calculateBounds: function (evt) {
+                this.debounce('resize', function () {
+                    if (this.getBoundingClientRect().width < 990) {
+                        this.toggleClass('constrained', true, this.$.list);
+                        this.toggleClass('constrained', true, this.$.detail);
+
+                        this.toggleClass('detail-active', false, this.$.list);
+                        this.toggleClass('list-active', true, this.$.detail);
+
+                    } else {
+                        this.toggleClass('constrained', false, this.$.list);
+                        this.toggleClass('constrained', false, this.$.detail);
+
+                        this.toggleClass('detail-active', true, this.$.list);
+                        this.toggleClass('list-active', false, this.$.detail);
+                    }
+                }, 300);
+            },
+            /**
+             * For small form factors, these classes are toggled in order to toggle back and forth
+             * between the list and detail views.
+             */
+            _goBackToList: function (evt) {
+                this.toggleClass('detail-active', false, this.$.list);
+                this.toggleClass('list-active', true, this.$.detail);
+            },
+            /**
+             * Searches through the list titles and subtitles and filters based on the query.
+             */
+            _computeFilter: function (query) {
+                if (!query) {
+                    // set filter to null to disable filtering
+                    return null;
+                } else {
+                    // return a filter function for the current search query
+                    query = query.toLowerCase();
+                    return function (listItem) {
+                        var userName = listItem.user.userName.toLowerCase();
+                        var designation = listItem.user.designation.toLowerCase();
+
+                        return (userName.indexOf(query) != -1 ||
+                            designation.indexOf(query) != -1);
+                    };
+                }
+            },
+            /**
+             * Sort function for the array of list items.
+             */
+            _computeSort: function (sortBy, sortOrder) {
+                sortBy = sortBy ? sortBy.toLowerCase().replace(/\s+/g, '') : '';
+                var asc = sortOrder === 'ascending';
+                // return sort function which maps severities to numeric values
+                if (asc) {
+                    return function (a, b) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : 0;
+                    }
+                } else if (!asc) {
+                    return function (b, a) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : -1;
+                    }
+                }
+
+            },
+            _reverseSort: function () {
+                if (this.sortOrder === 'ascending') {
+                    this.sortOrder = 'descending';
+                    this.$.sortIcon.classList.value = 'fas fa-arrow-up';
+                } else if (this.sortOrder === 'descending') {
+                    this.sortOrder = 'ascending';
+                    this.$.sortIcon.classList.value = 'fas fa-arrow-down';
+                }
+            },
+            _updateClass: function () {
+                this.debounce('_updateClass', function () {
+                    if (this.$.list__body.scrollTop > 0) {
+                        this.toggleClass('shadow-component', true, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    } else {
+                        this.toggleClass('shadow-component', false, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    }
+                }, 50);
+            },
+
+            _sortByChange: function (e) {
+                var _root = this;
+                _root.set('sortBy', e.target.value)
+            },
+
+            _selectedDepartment: function (e) {
+                var _root = this;
+                // console.log('_selectedDepartment', e.currentTarget.value)
+                _root.selectedDepartment = e.currentTarget.value;
+
+                if (_root.selectedDepartment !== '') {
+                    var _departmentSectionsItems = _root.querySelector('#_departmentSectionsItems');
+                    _departmentSectionsItems.generateRequest();
+                } else {
+                    _root.selectedDepartment = false;
+                }
+            },
+
+            _isEqual: function (str1, str2) {
+                return str1 === str2
+            },
+
+            _markChecked: function (str, arr) {
+                var marckCheck = arr.find(function (e, i) {
+                    return e.id === str
+                });
+                return !!marckCheck;
+            },
+
+
+
+
+
+
+            _addUser: function (e) {
+                var _root = this;
+                // console.log('_addUser', e);
+                e.stopPropagation();
+
+                _root.selectedDepartment = false;
+
+                var _form_addUser = _root.querySelector('#_form_addUser');
+                _form_addUser.reset();
+
+                var selects = this.querySelectorAll('select');
+                for (var i = 0; i < selects.length; i++) {
+                    selects[i].selectedIndex = 0;
+                }
+
+                _root._status_addUser = null;
+
+                $(_root.$._modal_addUser).modal({
+                    backdrop: 'static',
+                    show: true,
+                    keyboard: false
+                });
+
+
+            },
+
+
+            _confirm_addUser: function (e) {
+                var _root = this;
+                var userPassword;
+                var _form_addUser = _root.querySelector('#_form_addUser');
+                if (document.querySelector('#_passwordOption_addUser').value === 'manual') {
+                    userPassword = null;
+                }
+                else {
+                    userPassword = _root.querySelector('#_password_addUser').value;
+                }
+                if (_form_addUser.checkValidity()) {
+                    e.preventDefault();
+
+                    var addUser = _root.querySelector('#addUser');
+                    var addUserData = new FormData();
+
+                    var _userName_addUser = _root.querySelector('#_userName_addUser').value;
+                    var _password_addUser = userPassword;
+                    var _email_addUser = _root.querySelector('#_email_addUser').value;
+                    var _mobileNum_addUser = _root.querySelector('#_mobileNum_addUser').value;
+                    var _designation_addUser = _root.querySelector('#_designation_addUser').value;
+                    var _division_addUser = _root.querySelector('#_division_addUser').value;
+                    var _department_addUser = _root.querySelector('#_department_addUser').value;
+                    var _section_addUser = _root.querySelector('#_section_addUser').value;
+                    var _roles_addUser = _root.querySelector('#_roles_addUser').value;
+                    var _address_addUser = _root.querySelector('#_address_addUser').value;
+                    // var _activeStatus_addUser = _root.querySelector('#_activeStatus_addUser').value;
+
+                    var _groups_addUser = []
+                    var checkboxes = _root.querySelectorAll('[name="_groups_addUser"]:checked');
+
+                    for (var i = 0; i < checkboxes.length; i++) {
+                        _groups_addUser.push({
+                            'id': checkboxes[i].value
+                        })
+                    }
+
+
+                    addUserData = {
+                        "groups": _groups_addUser,
+                        "user": {
+                            "address": _address_addUser,
+                            "dashboardOrder": "string",
+                            "company": "string",
+                            "department": {
+                                "id": parseInt(_department_addUser)
+                            },
+                            "designation": _designation_addUser,
+                            "division": _division_addUser,
+                            "email": _email_addUser,
+                            "organization": {
+                                "organizationId": "epcl"
+                            },
+                            "password": _password_addUser,
+                            "phoneNumber": parseInt(_mobileNum_addUser),
+                            "position": "string",
+                            "role": "string",
+                            "userRole": {
+                                "roleId": _roles_addUser
+                            },
+                            "section": {
+                                "sectionId": parseInt(_section_addUser)
+                            },
+                            /* "status": _activeStatus_addUser, */
+                            "userName": _userName_addUser
+                        }
+                    }
+                    // console.log('addUserData', addUserData);
+                    addUser.body = addUserData;
+
+                    addUser.generateRequest();
+                    document.documentElement.classList.add('in-progress');
+                }
+            },
+
+
+            _onResponse_addUser: function (e) {
+                var _root = this;
+                // document.documentElement.classList.remove('in-progress');
+                // console.log('_onResponse_addUser', e.detail.response, e.detail.response.error);
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_addUser = typeof (e.detail.response.error) === 'object' ? e.detail.response.error.error : e.detail.response.error;
+                } else {
+                    $(_root.$._modal_addUser).modal('hide');
+                    _root._refreshList();
+                }
+                _root.addPasswordOption = false;
+                document.documentElement.classList.remove('in-progress');
+            },
+            _close_addUser: function (e) {
+                var _root = this;
+                _root.addPasswordOption = false;
+            },
+            _cancel_addUser: function (e) {
+                var _root = this;
+                _root.addPasswordOption = false;
+            },
+
+
+
+
+
+
+
+
+            _editUser: function (e) {
+                // console.log('_editUser', e.currentTarget.dataset.listid);
+                e.stopPropagation();
+
+                var _root = this;
+
+                var _form_editUser = _root.querySelector('#_form_editUser');
+                _form_editUser.reset();
+
+                var seclectedId = e.currentTarget.dataset.listid;
+
+                _root.selectedListItem = null;
+
+                _root.async(function () {
+                    for (var i = 0; i < _root.listItems.length; i++) {
+                        if (_root.listItems[i].user.id == seclectedId) {
+                            // _root.selectedListItemId = seclectedId;
+
+                            _root.selectedListItem = _root.listItems[i];
+                            _root.selectedDepartment = _root.selectedListItem.user.section.department.id;
+                            _root.selectedUserPassword = _root.selectedListItem.user.password;
+                        }
+                    }
+                    _root.querySelector('#_department_editUser').dispatchEvent(new Event('change'));
+                    // console.log(_root.selectedListItem.user.password);
+                    // if (_root.selectedListItem.user.password) {
+                    //     document.querySelector('#_passwordOption_editUser').value = 'manual';
+                    //     _root.editPasswordOption = true;
+                    //     _root.addPasswordOption = false;
+                    //     _root.async(function () {
+                    //         $('[data-toggle="popover"]').popover();
+                    //         $('.popover-dismiss').popover({ trigger: 'focus' });
+                    //     })
+                    // }
+
+                });
+
+
+                // _root.selectedDepartment = _root.selectedListItem.user.section.department.id;
+                _root._status_editUser = null;
+
+                $(_root.$._modal_editUser).modal({
+                    backdrop: 'static',
+                    show: true,
+                    keyboard: false
+                });
+
+
+                // 
+
+                _root.async(function () {
+                    $('[data-toggle="popover"]').popover();
+                    $('.popover-dismiss').popover({ trigger: 'focus' });
+                })
+
+                // _root.querySelector('#getUser').generateRequest();
+
+            },
+
+
+            _confirm_editUser: function (e) {
+                // console.log('_confirm_editUser', e)
+                var _root = this;
+                var _form_editUser = _root.querySelector('#_form_editUser');
+                _root._passwordChange();
+                if (_form_editUser.checkValidity()) {
+                    e.preventDefault();
+
+                    var editUser = _root.querySelector('#editUser');
+                    var editUserData = new FormData();
+
+                    var _userName_editUser_sendIdBackend = _root.querySelector('#_userName_editUser').name;
+
+                    var _userName_editUser = _root.querySelector('#_userName_editUser').value;
+                    var _password_editUser = _root.querySelector('#_password_editUser').value;
+                    var _email_editUser = _root.querySelector('#_email_editUser').value;
+                    var _mobileNum_editUser = _root.querySelector('#_mobileNum_editUser').value;
+                    var _designation_editUser = _root.querySelector('#_designation_editUser').value;
+                    var _division_editUser = _root.querySelector('#_division_editUser').value;
+                    var _department_editUser = _root.querySelector('#_department_editUser').value;
+                    var _section_editUser = _root.querySelector('#_section_editUser').value;
+                    var _roles_editUser = _root.querySelector('#_roles_editUser').value;
+                    var _address_editUser = _root.querySelector('#_address_editUser').value;
+                    // var _activeStatus_editUser = _root.querySelector('#_activeStatus_editUser').value;
+
+                    var _groups_editUser = []
+                    var checkboxes = _root.querySelectorAll('[name="_groups_editUser"]:checked');
+
+                    for (var i = 0; i < checkboxes.length; i++) {
+                        _groups_editUser.push({
+                            'id': checkboxes[i].value
+                        })
+                    }
+
+                    // alert();
+                    // console.log(window.user_data.user.id)
+                    editUserData = {
+
+                        "groups": _groups_editUser,
+                        "user": {
+                            "address": _address_editUser,
+                            "dashboardOrder": "string",
+                            "company": "string",
+                            "department": {
+                                "id": parseInt(_department_editUser)
+                            },
+                            "designation": _designation_editUser,
+                            "division": _division_editUser,
+                            "email": _email_editUser,
+                            "id": _userName_editUser_sendIdBackend,
+                            "organization": {
+                                "organizationId": "epcl"
+                            },
+                            "password": _password_editUser,
+                            "phoneNumber": parseInt(_mobileNum_editUser),
+                            "position": "string",
+                            "role": "string",
+                            "userRole": {
+                                "roleId": _roles_editUser
+                            },
+                            "section": {
+                                "sectionId": parseInt(_section_editUser)
+                            },
+                            /* "status": _activeStatus_editUser, */
+                            "userName": _userName_editUser
+                        },
+                        "updatedBy": window.user_data.user.id
+                    }
+                    // console.log('editUserData', editUserData);
+                    editUser.body = editUserData;
+
+                    editUser.generateRequest();
+                    document.documentElement.classList.add('in-progress');
+                }
+            },
+
+            _onResponse_editUser: function (e) {
+                var _root = this;
+                // console.log('_onResponse_editUser', e.detail.response);
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_editUser = e.detail.response.error;
+                } else {
+                    $(_root.$._modal_editUser).modal('hide');
+                    _root._refreshList();
+                }
+                document.documentElement.classList.remove('in-progress');
+            },
+            _close_editUser: function (e) { },
+            _cancel_editUser: function (e) { },
+
+
+
+
+
+
+            _deleteUser: function (e) {
+                var _root = this;
+                // console.log('_deleteUser', e.currentTarget.dataset.listid);
+                e.stopPropagation();
+
+                _root._status_deleteUser = "";
+
+                _root.deleteUserId = e.currentTarget.dataset.listid;
+
+                $(_root.$._modal_deleteUser).modal({
+                    backdrop: 'static',
+                    show: true
+                });
+
+            },
+
+            _confirm_deleteUser: function (e) {
+                var _root = this;
+                // console.log(this.deleteUserId);
+                var deleteUser = _root.querySelector('#deleteUser');
+                deleteUser.url = '/users/' + _root.deleteUserId;
+                deleteUser.generateRequest();
+
+            },
+
+            _onResponse_deleteUser: function (e) {
+                var _root = this;
+                // console.log('_onResponse_deleteUser', e.detail.response);
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_deleteUser = e.detail.response.error;
+                    // _root._status_deleteUser = typeof (e.detail.response.error) === 'object' ? e.detail.response.error.error : e.detail.response.error;
+                } else {
+                    $(_root.$._modal_deleteUser).modal('hide');
+                    _root._refreshList();
+                }
+
+            },
+            _close_deleteUser: function (e) { },
+            _cancel_deleteUser: function (e) { },
+
+
+
+
+
+
+
+            _refreshList: function () {
+                var _root = this;
+                // _root.toggleClass('detail-active', false, this.$.list);
+                // _root.toggleClass('list-active', true, this.$.detail);
+
+                _root.fire('refresh-list');
+            },
+
+            _onResponse_departmentList: function (e) {
+
+            },
+
+            _onResponse_departmentSectionsItems: function (e) { },
+
+            _onResponse_getUser: function (e) {
+                // console.log('_onResponse_getUser', e.detail.response);
+                var _root = this;
+                _root.selectedListItem = e.detail.response;
+                _root.selectedDepartment = _root.selectedListItem.user.section.department.id;
+                _root._status_editUser = null;
+
+                $(_root.$._modal_editUser).modal({
+                    backdrop: 'static',
+                    show: true
+                });
+
+                _root.querySelector('#_department_editUser').dispatchEvent(new Event('change'));
+            },
+
+            _onResponse_rolesList: function (e) { },
+        });
+    </script>
+
+</dom-module>

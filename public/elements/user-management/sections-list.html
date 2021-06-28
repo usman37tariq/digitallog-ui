@@ -1,0 +1,774 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-resizable-behavior/iron-resizable-behavior.html" />
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<dom-module id="sections-list">
+
+    <template>
+
+        <style>
+            :host {
+                display: block;
+                width: 100%;
+            }
+
+            .list-group-item.active {
+                background-color: #e9ecef;
+                border-color: #dee2e6;
+                color: #495057;
+            }
+
+            .alert-danger {
+                word-wrap: break-word;
+                max-height: 300px;
+                overflow: auto;
+            }
+
+            /* .item-actions{
+                display: none;
+            }
+
+            .list-group-item:hover .item-actions{
+                display: block;
+            } */
+
+            .list-group-item.active .text-black-50 {
+                color: rgba(255, 255, 255, .75) !important;
+            }
+
+
+            .list.constrained.detail-active {
+                display: none !important;
+            }
+
+            .detail.list-active {
+                display: none !important;
+            }
+
+            .back-link {
+                display: none !important;
+            }
+
+            .detail.constrained .back-link {
+                display: block !important
+            }
+
+            .detail.constrained.list-active {
+                display: none !important;
+            }
+
+            ::content .detail.constrained .detail-container {
+                height: auto !important;
+            }
+
+            ::content .filters-container {
+                overflow-y: auto;
+                background: #dee2e6;
+            }
+
+            #sortBy,
+            #sortIcon {
+                cursor: pointer;
+            }
+
+            .text-break {
+                word-break: break-word !important;
+            }
+        </style>
+
+
+        <global-loader>
+            <iron-ajax id="addSection" method="POST" url="/section" content-type="application/json"
+                on-response="_onResponse_addSection">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax id="editSection" method="PUT" url="/section" content-type="application/json"
+                on-response="_onResponse_editSection">
+            </iron-ajax>
+        </global-loader>
+
+
+        <global-loader>
+            <iron-ajax id="deleteSection" method="DELETE" url="/section" on-response="_onResponse_deleteSection">
+            </iron-ajax>
+        </global-loader>
+
+
+
+
+
+
+        <div class="d-flex h-100">
+
+            <aside id="list"
+                class="list bg-light border-right col-12 col-lg-4 col-xl-3 flex-column left-container overflow-hidden d-flex">
+
+
+                <div class="border-bottom mx-n3 pb-3 pt-3 px-3 w-auto flex-grow-0">
+                    <div class="d-flex">
+                        <div class="flex-grow-1 font-weight-normal h5 m-0">Sections</div>
+                        <button on-click="_addSection" class="flex-grow-0 btn btn-dark btn-sm my-n1"
+                            title="Add Section"><i class="fas fa-plus mr-1"></i> Add Section</button>
+                    </div>
+                    <div class="input-group  mt-3">
+                        <div class="input-group-prepend">
+                            <label class="input-group-text" for="jstreeSearch"><i class="fas fa-search"></i></label>
+                        </div>
+                        <input type="search" id="jstreeSearch" class="form-control" placeholder="Type to filter"
+                            value="{{_query::input}}">
+                    </div>
+                    <!-- <div class=" form-group d-flex m-0 mt-2 mb-n2 text-black-50">
+                        <label for="sortBy" class="col-form-label mr-2 form-control-sm">Sort by: </label>
+                        <div class="flex-grow-1">
+                            <select class="form-control form-control-plaintext text-black-50 form-control-sm"
+                                id="sortBy" on-change="_sortByChange">
+                                <option value="name">Name</option>
+                            </select>
+                        </div>
+                        <div class="ml-1 col-form-label form-control-sm" on-click="_reverseSort">
+                            <i id="sortIcon" class="fas fa-arrow-down"></i>
+                        </div>
+                    </div> -->
+
+                </div>
+
+
+
+
+                <div class="list-container position-sticky mx-n3 overflow-auto h-100">
+                    <ul id="list__body" class="list-group list-group-flush" on-scroll="_updateClass">
+                        <template is="dom-repeat" items="{{listItems}}" as="listItem"
+                            filter="{{_computeFilter(_query)}}" sort="{{_computeSort(sortBy,sortOrder)}}">
+                            <li id="{{listItem.sectionId}}" data-listid$="{{listItem.sectionId}}"
+                                class$="list-group-item list-group-item-action pointer {{_computeClass(selectedItem,listItem.sectionId)}}"
+                                on-click="_selectItem">
+
+                                <div class="d-flex">
+                                    <div class="col-10 p-0">
+                                        <div class="m-0 text-break" title="{{listItem.sectionName}}">
+                                            {{listItem.sectionName}}</div>
+                                        <div class="text-muted text-break" title="{{listItem.department.name}}"
+                                            style="font-size: 11px;">{{listItem.department.name}}</div>
+                                    </div>
+                                    <div class="align-items-center col-2 d-flex item-actions justify-content-end p-0">
+                                        <button data-listid$="{{listItem.sectionId}}" on-click="_editSection"
+                                            class="btn btn-outline-dark btn-sm mt-n1 border-0" title="Edit Section"><i
+                                                class="fas fa-sm fa-pen"></i></button>
+                                        <button data-listid$="{{listItem.sectionId}}" on-click="_deleteSection"
+                                            class="btn btn-outline-danger btn-sm mt-n1 border-0"
+                                            title="Delete Section"><i class="fas fa-sm fa-trash"></i></button>
+                                    </div>
+                                </div>
+
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+
+            </aside>
+
+
+
+
+
+
+
+            <div id="detail" class="detail p-0 flex-grow-1 overflow-auto d-flex flex-column">
+                <div class="flex-grow-0">
+                    <div class="back-link">
+                        <span class="btn btn-sm ml-3 my-2" on-click="_goBackToList"><i
+                                class="fas fa-arrow-left mr-2"></i>Back</span>
+                    </div>
+                </div>
+                <div class="flex-grow-1 overflow-auto">
+                    <content></content>
+                </div>
+            </div>
+
+        </div>
+
+
+
+
+
+
+
+        <!-- Modal - addSection -->
+        <div class="modal" id="_modal_addSection" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Section</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_addSection">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <form id="_form_addSection">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="_name_addSection" class="text-muted m-0">Name <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_name_addSection"
+                                    pattern="^$|^[^\s]+(\s+[^\s]+)*$"
+                                    title="Not allowed whitespace at begining/end of name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="_department_addSection" class="text-muted m-0">Department <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_department_addSection" required>
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{departments}}">
+                                        <option value="{{item.id}}">{{item.name}}</option>
+                                    </template>
+                                </select>
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_addSection}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_addSection}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_addSection">Cancel</button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_addSection"><i
+                                        class="fas fa-plus mr-1"></i> Add</button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+        <!-- Modal - editSection -->
+        <div class="modal" id="_modal_editSection" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Section</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_editSection">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+
+                    <form id="_form_editSection">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="_name_editSection" class="text-muted m-0">Name <span
+                                        class="text-danger">*</span></label>
+                                <input maxlength="100" type="text" class="form-control" id="_name_editSection"
+                                    pattern="^$|^[^\s]+(\s+[^\s]+)*$"
+                                    title="Not allowed whitespace at begining/end of name"
+                                    value="{{selectedListItem.sectionName}}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="_department_editSection" class="text-muted m-0">Department <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-control" id="_department_editSection" required>
+                                    <option disabled selected></option>
+                                    <template is="dom-repeat" items="{{departments}}">
+                                        <option value="{{item.id}}"
+                                            selected="{{_isEqual(item.id, selectedListItem.department.id)}}">
+                                            {{item.name}}</option>
+                                    </template>
+                                </select>
+                            </div>
+
+                        </div>
+
+
+                        <div class="modal-footer flex-column align-items-stretch">
+                            <div>
+                                <template is="dom-if" if="{{_status_editSection}}">
+                                    <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                        {{_status_editSection}}
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="text-right">
+                                <button type="button" class="btn btn-light" data-dismiss="modal"
+                                    on-click="_cancel_editSection">Cancel</button>
+                                <button type="submit" class="btn btn-dark" on-click="_confirm_editSection"><i
+                                        class="fas fa-save mr-1"></i> Save</button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+        <!-- Modal - deleteSection -->
+        <div class="modal" id="_modal_deleteSection" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Section</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            on-click="_close_deleteSection">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        Are you sure, you want to delete?
+                    </div>
+
+                    <div class="modal-footer flex-column align-items-stretch">
+                        <div>
+                            <template is="dom-if" if="{{_status_deleteSection}}">
+                                <div class="alert alert-danger border-0 m-0 p-2 mb-3 text-center" role="alert">
+                                    {{_status_deleteSection}}
+                                </div>
+                            </template>
+                        </div>
+                        <div class="text-right">
+                            <button type="button" class="btn btn-light" data-dismiss="modal"
+                                on-click="_cancel_deleteSection">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-danger" on-click="_confirm_deleteSection">
+                                <i class="fas fa-trash mr-1"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+    </template>
+
+    <script>
+        Polymer({
+            is: "sections-list",
+
+            behaviors: [
+                Polymer.IronResizableBehavior
+            ],
+
+            listeners: {
+                "iron-resize": "_calculateBounds"
+            },
+
+            properties: {
+                /**
+                 * Array of items to include in the list. Each item in the array should be an object with:
+                 * - id (used for fetching the details view)
+                 * - title
+                 * - subtitle
+                 * - severity (one of "important", "error", "warning", or "information")
+                 * - date (optional, should be valid <a href="https://www.w3.org/TR/NOTE-datetime">8601 date strings</a>)
+                 */
+                listItems: {
+                    type: Array,
+                    notify: true
+                },
+                /**
+                 * ID of the selected item, for pulling up the details to display in the right side of the inbox view.
+                 */
+                selectedItem: {
+                    type: String,
+                    notify: true
+                },
+                /**
+                 * Search query used to filter the list.
+                 */
+                _query: {
+                    type: String
+                },
+                /**
+                 * Property to sort the list by.
+                 */
+                sortBy: {
+                    type: String,
+                    value: "title"
+                },
+                /**
+                 * Sort order - ascending or descending.
+                 */
+                sortOrder: {
+                    type: String,
+                    value: "ascending"
+                },
+                /**
+                 * By default, the first item in the list will be selected.
+                 * Set this flag to "true" to disable this default selection.
+                 */
+                disableAutoSelect: {
+                    type: Boolean,
+                    value: false
+                }
+            },
+
+            created: function () {
+
+                document.documentElement.classList.remove('in-progress');
+            },
+
+            ready: function () {
+
+            },
+
+            attached: function () { },
+
+            detached: function () { },
+
+            attributeChanged: function (name, type) {
+
+            },
+
+            /**
+             * Figures out whether the item is currently selected.
+             */
+            _computeClass: function (selectedId, id) {
+                return (selectedId && String(selectedId) === String(id)) ? 'active' : '';
+            },
+
+            /**
+             * Adds visual style to the currently selected item and triggers display of the details.
+             */
+            _selectItem: function (evt) {
+                var _root = this;
+                // var seclectedTagId = evt.currentTarget.id;
+                var seclectedTagId = evt.currentTarget.dataset.listid;
+
+                // var otherItems = Polymer.dom(this.root).querySelectorAll('.active');
+                // for (var i = 0; i < otherItems.length; i++) {
+                //     // otherItems[i].classList.remove("active");
+                // };
+                document.getElementById(seclectedTagId).classList.add("active");
+                _root.selectedItem = document.getElementById(seclectedTagId).id;
+
+                _root.toggleClass('detail-active', true, _root.$.list);
+                _root.toggleClass('list-active', false, _root.$.detail);
+
+            },
+            /**
+             * When the window or any parent container is resized, need to recalculate the bounds
+             * of the px-inbox and react accordingly - in constrained situations, the list and detail
+             * will not be displayed simultaneously but will toggle back and forth instead.
+             */
+            _calculateBounds: function (evt) {
+                this.debounce('resize', function () {
+                    if (this.getBoundingClientRect().width < 990) {
+                        this.toggleClass('constrained', true, this.$.list);
+                        this.toggleClass('constrained', true, this.$.detail);
+
+                        this.toggleClass('detail-active', false, this.$.list);
+                        this.toggleClass('list-active', true, this.$.detail);
+
+                    } else {
+                        this.toggleClass('constrained', false, this.$.list);
+                        this.toggleClass('constrained', false, this.$.detail);
+
+                        this.toggleClass('detail-active', true, this.$.list);
+                        this.toggleClass('list-active', false, this.$.detail);
+                    }
+                }, 300);
+            },
+            /**
+             * For small form factors, these classes are toggled in order to toggle back and forth
+             * between the list and detail views.
+             */
+            _goBackToList: function (evt) {
+                this.toggleClass('detail-active', false, this.$.list);
+                this.toggleClass('list-active', true, this.$.detail);
+            },
+            /**
+             * Searches through the list titles and subtitles and filters based on the query.
+             */
+            _computeFilter: function (query) {
+                if (!query) {
+                    // set filter to null to disable filtering
+                    return null;
+                } else {
+                    // return a filter function for the current search query
+                    query = query.toLowerCase();
+                    return function (listItem) {
+                        var sectionName = listItem.sectionName.toLowerCase();
+                        var departmentName = listItem.department.name.toLowerCase();
+
+                        return (sectionName.indexOf(query) != -1 || departmentName.indexOf(query) != -1);
+                    };
+                }
+            },
+
+            /**
+             * Sort function for the array of list items.
+             */
+            _computeSort: function (sortBy, sortOrder) {
+                root = this;
+                sortBy = sortBy ? sortBy.toLowerCase().replace(/\s+/g, '') : '';
+                var asc = sortOrder === 'ascending';
+                // return sort function which maps severities to numeric values
+                if (asc) {
+                    return function (a, b) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : 0;
+                    }
+                } else if (!asc) {
+                    return function (b, a) {
+                        return (a[sortBy] < b[sortBy]) ? -1 : (a[sortBy] > b[sortBy]) ? 1 : -1;
+                    }
+                }
+
+            },
+            _reverseSort: function () {
+                if (this.sortOrder === 'ascending') {
+                    this.sortOrder = 'descending';
+                    this.$.sortIcon.classList.value = 'fas fa-arrow-up';
+                } else if (this.sortOrder === 'descending') {
+                    this.sortOrder = 'ascending';
+                    this.$.sortIcon.classList.value = 'fas fa-arrow-down';
+                }
+            },
+            _updateClass: function () {
+                this.debounce('_updateClass', function () {
+                    if (this.$.list__body.scrollTop > 0) {
+                        this.toggleClass('shadow-component', true, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    } else {
+                        this.toggleClass('shadow-component', false, Polymer.dom(this.root)
+                            .querySelector('.list__header'));
+                    }
+                }, 50);
+            },
+
+            _sortByChange: function (e) {
+                this.set('sortBy', e.target.value)
+            },
+
+
+            _isEqual: function (str1, str2) {
+                return str1 === str2
+            },
+
+
+
+
+
+
+            _addSection: function (e) {
+                var _root = this;
+                // console.log('_addSection', e);
+                e.stopPropagation();
+
+                var _form_addSection = _root.querySelector('#_form_addSection');
+                _form_addSection.reset();
+
+                var selects = this.querySelectorAll('select');
+                for (var i = 0; i < selects.length; i++) {
+                    selects[i].selectedIndex = 0;
+                }
+
+                _root._status_addSection = null;
+
+                $(_root.$._modal_addSection).modal({
+                    backdrop: 'static'
+                }).modal('show');
+            },
+
+
+            _confirm_addSection: function (e) {
+                var _root = this;
+                var _form_addSection = _root.querySelector('#_form_addSection');
+
+                if (_form_addSection.checkValidity()) {
+                    e.preventDefault();
+
+                    var addSection = _root.querySelector('#addSection');
+                    var addSectionData = new FormData();
+
+                    var _name_addSection = _root.querySelector('#_name_addSection').value;
+                    var _department_addSection = _root.querySelector('#_department_addSection').value;
+
+                    addSectionData = {
+                        "department": {
+                            "id": _department_addSection
+                        },
+                        "sectionName": _name_addSection
+                    }
+                    // console.log('addSectionData', addSectionData);
+                    addSection.body = addSectionData;
+
+                    addSection.generateRequest();
+                }
+            },
+
+
+            _onResponse_addSection: function (e) {
+                var _root = this;
+                // console.log('_onResponse_addSection', e.detail.response, e.detail.response.error);
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_addSection = e.detail.response.error;
+                } else {
+                    $(_root.$._modal_addSection).modal('hide');
+                    _root._refreshList();
+                }
+            },
+            _close_addSection: function (e) { },
+            _cancel_addSection: function (e) { },
+
+
+
+
+
+
+
+
+            _editSection: function (e) {
+                var _root = this;
+                // console.log('_editSection', e.currentTarget.dataset.listid);
+                e.stopPropagation();
+
+                var _form_editSection = _root.querySelector('#_form_editSection');
+                _form_editSection.reset();
+
+                var seclectedId = e.currentTarget.dataset.listid;
+                _root.selectedListItem = null;
+
+                _root.async(function () {
+                    for (var i = 0; i < _root.listItems.length; i++) {
+                        if (_root.listItems[i].sectionId == seclectedId) {
+                            _root.selectedListItem = _root.listItems[i];
+                        }
+                    }
+                });
+
+                // console.log('_root.selectedListItem', _root.selectedListItem);
+
+                _root._status_editSection = null;
+
+                $(_root.$._modal_editSection).modal({
+                    backdrop: 'static'
+                }).modal('show');
+
+            },
+
+
+            _confirm_editSection: function (e) {
+                var _root = this;
+                // console.log('_confirm_editSection', e)
+                var _form_editSection = _root.querySelector('#_form_editSection');
+
+                if (_form_editSection.checkValidity()) {
+                    e.preventDefault();
+
+                    var editSection = _root.querySelector('#editSection');
+
+                    var editSectionData = new FormData();
+
+                    var _name_editSection = _root.querySelector("#_name_editSection").value;
+                    var _department_editSection = _root.querySelector("#_department_editSection").value;
+
+                    editSectionData = {
+                        "sectionId": _root.selectedListItem.sectionId,
+                        "sectionName": _name_editSection,
+                        "department": {
+                            "id": _department_editSection
+                        }
+                    }
+                    // console.log('editSectionData', editSectionData);
+                    editSection.body = editSectionData;
+
+                    editSection.generateRequest();
+
+                }
+            },
+
+            _onResponse_editSection: function (e) {
+                var _root = this;
+                // console.log('_onResponse_editSection', e.detail.response);
+                if (e.detail.response && e.detail.response.error) {
+                    _root._status_editSection = e.detail.response.error;
+                } else {
+                    $(_root.$._modal_editSection).modal('hide');
+                    _root._refreshList();
+                }
+            },
+            _close_editSection: function (e) { },
+            _cancel_editSection: function (e) { },
+
+
+
+
+
+
+            _deleteSection: function (e) {
+                // console.log('_deleteSection', e.currentTarget.dataset.listid);
+                e.stopPropagation();
+
+                this.deleteSectionId = e.currentTarget.dataset.listid;
+                this._status_deleteSection = "";
+                $(this.$._modal_deleteSection).modal({
+                    backdrop: 'static'
+                }).modal('show');
+
+            },
+
+            _confirm_deleteSection: function (e) {
+                // console.log(this.deleteSectionId);
+                var deleteSection = this.querySelector('#deleteSection');
+                deleteSection.url = '/section/' + this.deleteSectionId;
+                deleteSection.generateRequest();
+            },
+
+            _onResponse_deleteSection: function (e) {
+                // console.log('_onResponse_deleteSection', e.detail.response);
+
+                if (e.detail.response && e.detail.response.error) {
+                    this._status_deleteSection = e.detail.response.error;
+                } else {
+                    $(this.$._modal_deleteSection).modal('hide');
+                    this._refreshList();
+                }
+            },
+            _close_deleteSection: function (e) { },
+            _cancel_deleteSection: function (e) { },
+
+
+
+
+
+
+
+            _refreshList: function () {
+                this.fire('refresh-list');
+            }
+        });
+    </script>
+
+</dom-module>
